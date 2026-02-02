@@ -1,0 +1,17 @@
+# Motion Controller - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+opencv-contrib-python>=4.11.0.86
+mediapipe>=0.10.21
+pandas>=2.3.3
+scikit-learn>=1.7.2
+pydirectinput>=1.0.2
+numpy>=1.26.4
+protobuf>=4.25.3
+notebook
+ipykernel
+matplotlib
+seaborn
+customtkinter
+Pillow
+packaging

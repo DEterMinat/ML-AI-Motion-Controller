@@ -1,0 +1,100 @@
+# ==================== VIRTUAL ENVIRONMENT ====================
+motion-controller-env/
+venv/
+env/
+.venv
+Lib/
+Scripts/
+pyvenv.cfg
+
+# ==================== PYTHON CACHE & COMPILED ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==================== DATASET & MODELS ====================
+# (Uncomment to ignore if files are too large > 100MB)
+# dataset/raw_poses.csv
+# dataset/cleaned_data.csv
+# dataset/by_class/*.csv
+# models/boxing_model.pkl
+# models/label_encoder.pkl
+# models/scaler.pkl
+
+# ==================== LOGS & TEMP FILES ====================
+*.log
+crash_log.txt
+error_log.txt
+temp/
+tmp/
+*.bak
+*.tmp
+# ==================== IDE & EDITOR ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# ==================== JUPYTER & NOTEBOOKS ====================
+.ipynb_checkpoints/
+# *.ipynb (Track notebooks)
+.jupyter/
+
+# ==================== LINTING & TESTING ====================
+.pylint.d/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ==================== OS SPECIFIC ====================
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.lnk
+
+
+# ==================== PROJECT SPECIFIC ====================
+# Video files (if recording gameplay)
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Cache files
+*.cache
+
+# Keep these folders but ignore their generated files
+!dataset/
+!models/
+!dataset/by_class/
+!dataset/.gitkeep
+!models/.gitkeep
