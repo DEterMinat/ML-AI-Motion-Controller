@@ -10,19 +10,23 @@ import src.config as config
 
 def transform_dataset(df_raw):
     """
-    Transform Raw Skeleton Data(132) -> Pro-Level Features(72)
+    Transform Raw Skeleton Data(132) -> Pro-Level Features(108)
     Uses the shared PoseDetector logic to ensure Training matches Runtime.
     Includes:
     - Normalization
     - Upper Body Filter
     - Angles
     - Velocity (Delta from previous frame)
+    - Bone Vectors [NEW]
+    - Acceleration [NEW]
+    - Distance Features [NEW]
     """
     detector = PoseDetector()
     pro_data = []
     
-    # Iterate through rows to maintain sequence for velocity
+    # Iterate through rows to maintain sequence for velocity/acceleration
     prev_raw_landmarks = None
+    prev_velocity = None
     
     # Identify feature columns (everything except label)
     feature_cols = [c for c in df_raw.columns if c != 'label']
@@ -31,24 +35,24 @@ def transform_dataset(df_raw):
         # Get raw landmarks list (132 floats)
         raw_landmarks = row[feature_cols].values.tolist()
         
-        # Compute features with velocity (passing previous frame)
-        # Note: 'raw_landmarks' here is a flat list. 
-        # PoseDetector expects a list of 132 values.
-        features = detector.compute_features(raw_landmarks, prev_raw_landmarks)
+        # Compute features with velocity and acceleration
+        result = detector.compute_features(raw_landmarks, prev_raw_landmarks, prev_velocity)
         
-        if features:
+        if result:
+            features, current_velocity = result
             # Append Label
             features.append(row['label'])
             pro_data.append(features)
             
             # Update history
             prev_raw_landmarks = raw_landmarks
+            prev_velocity = current_velocity
         else:
-            # If feature extraction fails, reset history (break streak)
+            # If feature extraction fails, reset history
             prev_raw_landmarks = None
+            prev_velocity = None
             
     # Create Feature Names
-    # 60 Static + 12 Dynamic = 72
     new_cols = [f"f_{i}" for i in range(config.TOTAL_FEATURES)] + ['label']
     
     if not pro_data:

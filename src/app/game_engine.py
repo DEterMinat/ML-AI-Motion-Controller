@@ -55,8 +55,9 @@ class GameControllerThreaded:
         # Statistics
         self.action_count = {}
         
-        # State for Velocity Calculation
+        # State for Velocity/Acceleration Calculation
         self.prev_raw_landmarks = None
+        self.prev_velocity = None
         self.running = True
 
     # ... (load_model_and_encoder, predict_pose remain same) ...
@@ -226,17 +227,20 @@ class GameControllerThreaded:
         predicted_label, confidence = None, 0.0
         
         if raw_landmarks:
-            # Compute features using CURRENT + PREVIOUS landmarks (Velocity)
-            features = self.detector.compute_features(raw_landmarks, self.prev_raw_landmarks)
+            # Compute features using CURRENT + PREVIOUS landmarks (Velocity + Acceleration)
+            result = self.detector.compute_features(raw_landmarks, self.prev_raw_landmarks, self.prev_velocity)
             
-            # Update history for next frame
-            self.prev_raw_landmarks = raw_landmarks
-            
-            if features:
+            if result:
+                features, current_velocity = result
+                # Update history for next frame
+                self.prev_raw_landmarks = raw_landmarks
+                self.prev_velocity = current_velocity
+                
                 predicted_label, confidence = self.predict_pose(features)
         else:
-            # Lost tracking -> Reset velocity history
+            # Lost tracking -> Reset history
             self.prev_raw_landmarks = None
+            self.prev_velocity = None
         
         # Smart AI Analysis
         confirmed_action, is_consistent = self.analyzer.process_prediction(predicted_label, confidence)

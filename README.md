@@ -7,74 +7,132 @@ AI-powered motion controller ที่ใช้ webcam และ body movements 
 
 ## ✨ Features
 
-- **Real-time Pose Detection** - ใช้ Google MediaPipe ตรวจจับท่าทางแบบ real-time
-- **Dynamic AI (Velocity)** - ตรวจจับ "ความเร็ว" ของหมัด (Punch Speed) ไม่ใช่แค่ท่าทาง! ⚡
-- **Machine Learning (Neural Network)** - ใช้ MLP Classifier ความแม่นยำสูง (99%+)
-- **Smart AI** - มีระบบ Motion Analyzer ช่วยกรอง Noise และ Smoothing
-- **Modern GUI** - หน้าจอควบคุมสวยงาม Clean Look (No Legs, Floating Arms style)
-- **WebSocket Server** - ส่งข้อมูลท่าทางไปยัง Unity/Roblox/Web ได้ (Port 8765)
+- **Real-time Pose Detection** - ใช้ Google MediaPipe (BlazePose) ตรวจจับท่าทาง
+- **108 Pro-Level Features** - Landmarks + Angles + Velocity + Bone Vectors + Acceleration + Distance
+- **Machine Learning (MLP)** - Neural Network พร้อม Data Augmentation & GridSearchCV
+- **Smart AI** - Motion Analyzer กรอง Noise และ Smoothing
+- **Modern GUI** - CustomTkinter (Clean Look, Floating Arms style)
+- **WebSocket Server** - ส่งข้อมูลไปยัง Unity/Roblox/Web (Port 8765)
 - **Auto Game Control** - ส่งคำสั่งกดปุ่มให้เกมอัตโนมัติ
 
 ---
 
-## 📁 โครงสร้างโปรเจกต์ (Refactored)
+## 📁 โครงสร้างโปรเจกต์
 
 ```
 📂 ML-AI Motion Controller/
 │
 ├── 📂 dataset/                  # ข้อมูลดิบ (CSV)
 ├── 📂 models/                   # AI Model (.pkl)
+├── 📂 reports/                  # Training Reports (Plots)
+├── 📂 docs/                     # Documentation & Research
 │
 ├── 📂 src/                      # Source Code
 │   ├── 📂 app/
 │   │   ├── main.py             # 🖥️ GUI Application (Entry Point)
 │   │   └── game_engine.py      # ⚙️ Game Logic & Camera Thread
 │   │
-│   ├── 📂 data/                 # Scripts สำหรับเก็บข้อมูล
-│   ├── 📂 model/                # Scripts สำหรับเทรน AI
+│   ├── 📂 data/
+│   │   ├── collection.py       # เก็บข้อมูลท่าทาง
+│   │   ├── processing.py       # Transform Raw → 108 Features
+│   │   └── augmentation.py     # Data Augmentation (Noise, Scale, Mirror)
 │   │
-│   ├── 📂 utils/                # Utilities
+│   ├── 📂 model/
+│   │   └── cnn_model.py        # 1D-CNN Architecture (Optional)
+│   │
+│   ├── 📂 utils/
+│   │   ├── pose_detection.py   # MediaPipe Pose Detection
 │   │   ├── camera_stream.py    # Threaded Camera
 │   │   ├── motion_analyzer.py  # AI Smoothing Logic
 │   │   ├── ws_server.py        # 📡 WebSocket Server
 │   │   └── input_handler.py    # Keyboard Input
 │   │
-│   ├── 📂 legacy/               # Code เวอร์ชั่นเก่า (Backup)
-│   └── config.py               # ⚙️ Configuration
+│   └── config.py               # ⚙️ Configuration (108 features)
 │
-├── 📄 run.py                    # 🚀 Launch Script (กดรันไฟล์นี้!)
-├── 📄 requirements.txt          # Python packages
-└── 📄 README.md                 # คู่มือนี้
+├── 📂 scripts/
+│   ├── setup_env.bat           # ติดตั้ง Environment อัตโนมัติ
+│   ├── run_app.bat             # เปิดโปรแกรม
+│   ├── system_health_check.py  # เช็คระบบ
+│   └── test_camera.py          # ทดสอบกล้อง
+│
+├── 📄 train.py                   # 🤖 Training Script (CLI)
+├── 📄 train.ipynb               # 📓 Training Notebook (Jupyter)
+├── 📄 run.py                    # 🚀 Launch Script
+└── 📄 requirements.txt
 ```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### Step 1: ติดตั้ง Dependencies
+### Step 1: ติดตั้ง Environment
 
 ```bash
+# อัตโนมัติ (แนะนำ)
+scripts\setup_env.bat
+
+# หรือแบบ Manual
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Step 2: เปิดโปรแกรม (GUI Ver.)
+### Step 2: เปิดโปรแกรม
 
 ```bash
 python run.py
 ```
 
-- จะมีหน้าต่าง GUI ขึ้นมา
 - กดปุ่ม **Start Camera** เพื่อเริ่มใช้งาน
 - ปรับ **Confidence** ได้สดๆ ขณะเล่น
 - กด **C** เพื่อ Calibrate ท่าทางใหม่
 
 ---
 
-## 📡 WebSocket Integration (New!)
+## 🤖 Training Model
 
-ระบบจะส่งข้อมูล JSON ผ่าน `ws://localhost:8765` โดยอัตโนมัติเมื่อตรวจพบท่าทาง
+### วิธีที่ 1: Jupyter Notebook (แนะนำ)
 
-**ตัวอย่างข้อมูล:**
+```bash
+jupyter notebook train.ipynb
+```
+
+### วิธีที่ 2: CLI
+
+```bash
+# แบบเต็ม (Augmentation + GridSearchCV)
+python train.py
+
+# แบบเร็ว (ไม่ทำ GridSearch)
+python train.py --no-grid
+
+# ไม่ทำ Augmentation
+python train.py --no-augment
+```
+
+### ขั้นตอนการ Train:
+
+1. **เก็บข้อมูล:**
+
+   ```bash
+   python -m src.data.collection
+   ```
+
+   - กด **[N]** เปลี่ยนท่า | **[S]** เลือก Burst Size | **[R]** เริ่มอัด
+
+2. **Train:**
+
+   ```bash
+   python train.py
+   ```
+
+3. **เล่นเลย!** → `python run.py`
+
+---
+
+## 📡 WebSocket Integration
+
+ส่ง JSON ผ่าน `ws://localhost:8765` อัตโนมัติ:
 
 ```json
 {
@@ -83,45 +141,6 @@ python run.py
   "state": "ACTION"
 }
 ```
-
----
-
-## � Troubleshooting
-
-### Webcam ไม่ขึ้น
-
-- เช็คว่ามีโปรแกรมอื่นใช้กล้องอยู่หรือไม่
-- ลองเปลี่ยน `CAMERA_INDEX` ใน `src/config.py` เป็น 0 หรือ 1
-
-### AI จับท่าไม่แม่น
-
-1.  กดปุ่ม **C** หรือ **re-Calibrate** ใน GUI
-2.  ปรับ Slider **Confidence** ลงมาหน่อย (แนะนำ 0.7 - 0.8)
-3.  ลองเก็บข้อมูลท่าฝึกใหม่ให้ชัดเจนขึ้น (`python -m src.data.collection`)
-
----
-
-### Step 3: Train New Model (Custom Moves)
-
-ถ้าอยากเพิ่มท่าใหม่ หรือปรับความแม่นยำ:
-
-1.  **เก็บข้อมูล (Data Collection):**
-
-    ```bash
-    python -m src.data.collection
-    ```
-
-    - กด **[N]** เปลี่ยนท่าที่จะเก็บ (เช่น left_punch, dodge_right)
-    - กด **[S]** เลือกจำนวนรูป (Burst Size: 100/300/500/1000)
-    - กด **[R]** เพื่อเริ่มอัด (หยุดเองเมื่อครบ)
-
-2.  **เริ่มสอน AI (Training):**
-
-    ```bash
-    python train_pro.py
-    ```
-
-3.  **เล่นได้เลย!** (`python run.py`)
 
 ---
 
@@ -137,5 +156,15 @@ python run.py
 | **Dodge Back**  | `S` + `Space` | หลบหลัง        |
 | **Block**       | `B`           | ป้องกัน        |
 | **Final Skill** | `F`           | ท่าไม้ตาย      |
+
+---
+
+## 🔧 Troubleshooting
+
+| ปัญหา           | วิธีแก้                                      |
+| --------------- | -------------------------------------------- |
+| Webcam ไม่ขึ้น  | เปลี่ยน `CAMERA_INDEX` ใน `src/config.py`    |
+| AI จับไม่แม่น   | กด C (Calibrate) + ปรับ Confidence (0.7-0.8) |
+| MediaPipe Error | รัน `scripts\setup_env.bat` ใหม่             |
 
 **Happy Punching! 🥊🎮**

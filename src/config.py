@@ -42,12 +42,14 @@ POSE_MIN_TRACKING_CONFIDENCE = 0.5
 NUM_LANDMARKS = 33
 features_per_landmark = 4  # x, y, z, visibility
 
-# Total features after Pro-Level Engineering (Upper Body + Velocity):
+# Total features after Pro-Level Engineering v2:
 # Body Landmarks (14 points * 4 coords) = 56
 # + 4 Key Angles = 60
-# + 4 Velocity Points (Wrists, Elbows) * 3 coords (x,y,z) = 12
-# Total = 72
-TOTAL_FEATURES = 72
+# + 4 Velocity Points * 3 coords = 72
+# + 6 Bone Vectors * 3 coords = 90 [NEW]
+# + 4 Acceleration Points * 3 coords = 102 [NEW]
+# + 6 Distance Features = 108 [NEW]
+TOTAL_FEATURES = 108
 
 # ==================== MOTION ANALYZER CONFIGURATION ====================
 # For 60 FPS, we need slightly larger buffers to filter noise effectively
