@@ -60,3 +60,28 @@ def transform_dataset(df_raw):
         return pd.DataFrame(columns=new_cols)
         
     return pd.DataFrame(pro_data, columns=new_cols)
+
+def create_sequences(df_pro, window_size=10, step_size=1):
+    """
+    Create Sliding Window Sequences from Pro-level features.
+    Input: df_pro (N, 109) - features + label
+    Output: X (Samples, window_size, 108), y (Samples,)
+    """
+    sequences = []
+    labels = []
+    
+    # Process by label to avoid mixing different actions in one window
+    for label in df_pro['label'].unique():
+        df_class = df_pro[df_pro['label'] == label].copy()
+        
+        # Extract features
+        X_class = df_class.drop(columns=['label']).values
+        
+        # Create sliding windows
+        for i in range(0, len(X_class) - window_size + 1, step_size):
+            window = X_class[i : i + window_size]
+            sequences.append(window)
+            labels.append(label)
+            
+    return np.array(sequences), np.array(labels)
+
