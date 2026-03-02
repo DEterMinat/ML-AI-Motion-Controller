@@ -133,8 +133,11 @@ class GameControllerThreaded:
             if block_key:
                 self.input_handler.handle_hold(block_key, False)
         
+        # Convert string combinations (e.g., "w space") into a list
+        parsed_key = key.split() if isinstance(key, str) and " " in key else key
+        
         # Standard Discrete Actions (Punch, Dodge)
-        if self.input_handler.press_key(key, action_name=confirmed_action):
+        if self.input_handler.press_key(parsed_key, action_name=confirmed_action):
             # Update stats
             self.action_count[confirmed_action] = self.action_count.get(confirmed_action, 0) + 1
             

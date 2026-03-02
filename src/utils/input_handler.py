@@ -93,9 +93,9 @@ class InputHandler:
         
         try:
             # Handle Mouse Clicks
-            if key == 'click_left':
+            if key in ['click_left', 'lclick', 'mouse_left', 'คลิ๊กซ้าย', 'คลิกซ้าย']:
                 pydirectinput.click()
-            elif key == 'click_right':
+            elif key in ['click_right', 'rclick', 'mouse_right', 'คลิ๊กขวา', 'คลิกขวา']:
                 pydirectinput.click(button='right')
             
             # Handle Key Combinations (List)
