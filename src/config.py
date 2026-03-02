@@ -5,9 +5,13 @@ Central configuration for all project settings
 """
 
 import os
+import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # ==================== PATH CONFIGURATION ====================
-# Directories
 # Directories
 # config.py is now in src/, so we need to go up two levels to reach project root
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,10 +29,10 @@ ENCODER_FILE = os.path.join(MODELS_DIR, "label_encoder.pkl")
 SCALER_FILE = os.path.join(MODELS_DIR, "scaler.pkl")
 
 # ==================== CAMERA CONFIGURATION ====================
-CAMERA_INDEX = 0
+CAMERA_INDEX = int(os.environ.get("CAMERA_INDEX", 0))
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
-TARGET_FPS = 60  # 30 or 60
+TARGET_FPS = int(os.environ.get("TARGET_FPS", 30))
 
 # ==================== POSE DETECTION CONFIGURATION ====================
 # MediaPipe Pose settings
@@ -58,27 +62,36 @@ TOTAL_FEATURES = 108
 ANALYZER_HISTORY_SIZE = 3       # Minimal buffer
 ANALYZER_CONSISTENCY_THRESHOLD = 1 # Instant trigger (Raw output)
 
+# Temporal Smoothing (Prediction Buffer) [NEW]
+TEMPORAL_WINDOW_SIZE = 3 # Number of frames to keep in history for voting/averaging
+
 # ==================== GAME CONTROL CONFIGURATION ====================
 # Confidence threshold for predictions (0.0 - 1.0)
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", 0.8))
 
 # Cooldown between actions (seconds)
-ACTION_COOLDOWN = 0.2 # Fast cooldown for combos
+ACTION_COOLDOWN = 0.5 
 
-# Key mappings for game controls
-# Special keys: 'click_left', 'click_right'
-# Combo keys: ['key1', 'key2']
-KEY_BINDINGS = {
-    'left_punch': 'click_left',     # Click Left
-    'right_punch': 'click_right',   # Click Right
-    'block': 'f',                   # Press F (Block/Defense) - HOLD
-    'dodge_left': ['a', 'space'],   # Press A + Space
-    'dodge_right': ['d', 'space'],  # Press D + Space
-    'dodge_front': ['w', 'space'],  # Press W + Space
-    'dodge_back': ['s', 'space'],   # Press S + Space
-    'final_skill': 'q',             # Press q (Ultimate)
-    'neutral': None
-}
+# Dynamic Key Bindings [NEW]
+# We now load this dynamically, but keep a fallback here
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
+    from profiles_ui import ProfileManager
+    _pm = ProfileManager()
+    KEY_BINDINGS = _pm.get_active_bindings()
+except Exception as e:
+    print(f"Warning: Could not load profiles, using fallback bindings ({e})")
+    KEY_BINDINGS = {
+        "left_punch": "left",
+        "right_punch": "right",
+        "defense": "f",
+        "dodge_left": "q",
+        "dodge_right": "e",
+        'dodge_front': ['w', 'space'],  # Press W + Space
+        'dodge_back': ['s', 'space'],   # Press S + Space
+        'final_skill': 'q',             # Press q (Ultimate)
+        'neutral': None
+    }
 
 # ==================== TRAINING CONFIGURATION ====================
 # Train-test split ratio

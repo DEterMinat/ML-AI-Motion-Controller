@@ -25,6 +25,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import src.config as config
 from src.data.processing import transform_dataset
 from src.data.augmentation import augment_dataset
+from src.utils.logger import app_logger
+import datetime
+import json
 
 def create_reports_dir():
     report_dir = os.path.join(config.PROJECT_ROOT, "reports")
@@ -60,9 +63,9 @@ def load_data():
 
 def train(use_augmentation=True, use_grid_search=True):
     """Main training function with upgrades."""
-    print("=" * 60)
-    print("🤖 PROFESSIONAL AI TRAINING PIPELINE v2.0")
-    print("=" * 60)
+    app_logger.info("============================================================")
+    app_logger.info("🤖 PROFESSIONAL AI TRAINING PIPELINE v2.0")
+    app_logger.info("============================================================")
     
     reports_dir = create_reports_dir()
     
@@ -141,8 +144,8 @@ def train(use_augmentation=True, use_grid_search=True):
         )
         grid_search.fit(X_train, y_train)
         
-        print(f"\n  ✅ Best Parameters: {grid_search.best_params_}")
-        print(f"  ✅ Best CV Score: {grid_search.best_score_*100:.2f}%")
+        app_logger.info(f"Best Parameters: {grid_search.best_params_}")
+        app_logger.info(f"Best CV Score: {grid_search.best_score_*100:.2f}%")
         
         best_model = grid_search.best_estimator_
     else:
@@ -174,8 +177,8 @@ def train(use_augmentation=True, use_grid_search=True):
     y_pred = best_model.predict(X_test)
     test_acc = accuracy_score(y_test, y_pred)
     print(f"  🏆 Test Accuracy: {test_acc*100:.2f}%")
-    
     print("\nClassification Report:\n", classification_report(y_test, y_pred, target_names=encoder.classes_))
+    app_logger.info(f"Test Accuracy: {test_acc*100:.2f}%")
     
     # Confusion Matrix
     plt.figure(figsize=(8, 6))
@@ -192,25 +195,42 @@ def train(use_augmentation=True, use_grid_search=True):
     print(f"  ✓ Confusion Matrix saved")
 
     # =================================================================
-    # 6. Save Model
+    # 6. Save Model & Metadata Versioning
     # =================================================================
-    print("\n[STEP 6] Saving Model...")
+    app_logger.info("[STEP 6] Saving Model & Metadata...")
     config.ensure_directories()
     
-    with open(config.MODEL_FILE, 'wb') as f:
-        pickle.dump(best_model, f)
-    with open(config.ENCODER_FILE, 'wb') as f:
-        pickle.dump(encoder, f)
-    with open(config.SCALER_FILE, 'wb') as f:
-        pickle.dump(scaler, f)
-        
-    print(f"  ✅ Model saved: {config.MODEL_FILE}")
-    print(f"  ✅ Encoder saved: {config.ENCODER_FILE}")
-    print(f"  ✅ Scaler saved: {config.SCALER_FILE}")
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    version_dir = os.path.join(config.MODELS_DIR, f"v_{timestamp}")
+    os.makedirs(version_dir, exist_ok=True)
     
-    print("\n" + "=" * 60)
-    print(f"🎉 TRAINING COMPLETE! Test Accuracy: {test_acc*100:.2f}%")
-    print("=" * 60)
+    # Save to versioned dir
+    with open(os.path.join(version_dir, "boxing_model.pkl"), 'wb') as f: pickle.dump(best_model, f)
+    with open(os.path.join(version_dir, "label_encoder.pkl"), 'wb') as f: pickle.dump(encoder, f)
+    with open(os.path.join(version_dir, "scaler.pkl"), 'wb') as f: pickle.dump(scaler, f)
+        
+    # Save Metadata
+    metadata = {
+        "version": f"v_{timestamp}",
+        "date": timestamp,
+        "test_accuracy": round(test_acc * 100, 2),
+        "total_features": config.TOTAL_FEATURES,
+        "augmentation_used": use_augmentation,
+        "classes": list(encoder.classes_)
+    }
+    with open(os.path.join(version_dir, "model_metadata.json"), 'w') as f:
+        json.dump(metadata, f, indent=4)
+        
+    # Save 'latest' alias in root models dir
+    with open(config.MODEL_FILE, 'wb') as f: pickle.dump(best_model, f)
+    with open(config.ENCODER_FILE, 'wb') as f: pickle.dump(encoder, f)
+    with open(config.SCALER_FILE, 'wb') as f: pickle.dump(scaler, f)
+        
+    app_logger.info(f"Model saved to: {version_dir} and updated 'latest' in models/")
+    
+    app_logger.info("============================================================")
+    app_logger.info(f"🎉 TRAINING COMPLETE! Test Accuracy: {test_acc*100:.2f}%")
+    app_logger.info("============================================================")
     
     return best_model, encoder, scaler, test_acc
 

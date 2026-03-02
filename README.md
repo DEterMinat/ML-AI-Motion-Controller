@@ -26,6 +26,7 @@ AI-powered motion controller ที่ใช้ webcam และ body movements 
 ├── 📂 models/                   # AI Model (.pkl)
 ├── 📂 reports/                  # Training Reports (Plots)
 ├── 📂 docs/                     # Documentation & Research
+├── 📂 archive/                  # เอกสารเก่า (Legacy)
 │
 ├── 📂 src/                      # Source Code
 │   ├── 📂 app/
@@ -38,7 +39,7 @@ AI-powered motion controller ที่ใช้ webcam และ body movements 
 │   │   └── augmentation.py     # Data Augmentation (Noise, Scale, Mirror)
 │   │
 │   ├── 📂 model/
-│   │   └── cnn_model.py        # 1D-CNN Architecture (Optional)
+│   │   └── temporal_model.py   # PoseTransformer (Temporal Model)
 │   │
 │   ├── 📂 utils/
 │   │   ├── pose_detection.py   # MediaPipe Pose Detection
@@ -49,14 +50,19 @@ AI-powered motion controller ที่ใช้ webcam และ body movements 
 │   │
 │   └── config.py               # ⚙️ Configuration (108 features)
 │
-├── 📂 scripts/
+├── 📂 training/                 # 🤖 Training Scripts & Notebooks
+│   ├── train.py                # Training Script (CLI)
+│   ├── train.ipynb             # Training Notebook (MLP)
+│   └── train_temporal.ipynb    # Training Notebook (Transformer)
+│
+├── 📂 scripts/                  # Project Scripts
 │   ├── setup_env.bat           # ติดตั้ง Environment อัตโนมัติ
 │   ├── run_app.bat             # เปิดโปรแกรม
 │   ├── system_health_check.py  # เช็คระบบ
 │   └── test_camera.py          # ทดสอบกล้อง
 │
-├── 📄 train.py                   # 🤖 Training Script (CLI)
-├── 📄 train.ipynb               # 📓 Training Notebook (Jupyter)
+├── 📂 maintenance/              # 🔧 System Maintenance Tools
+│
 ├── 📄 run.py                    # 🚀 Launch Script
 └── 📄 requirements.txt
 ```
@@ -94,20 +100,20 @@ python run.py
 ### วิธีที่ 1: Jupyter Notebook (แนะนำ)
 
 ```bash
-jupyter notebook train.ipynb
+jupyter notebook training/train.ipynb
 ```
 
 ### วิธีที่ 2: CLI
 
 ```bash
 # แบบเต็ม (Augmentation + GridSearchCV)
-python train.py
+python training/train.py
 
 # แบบเร็ว (ไม่ทำ GridSearch)
-python train.py --no-grid
+python training/train.py --no-grid
 
 # ไม่ทำ Augmentation
-python train.py --no-augment
+python training/train.py --no-augment
 ```
 
 ### ขั้นตอนการ Train:
@@ -123,7 +129,7 @@ python train.py --no-augment
 2. **Train:**
 
    ```bash
-   python train.py
+   python training/train.py
    ```
 
 3. **เล่นเลย!** → `python run.py`

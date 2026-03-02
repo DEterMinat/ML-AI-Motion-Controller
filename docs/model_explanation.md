@@ -1,23 +1,22 @@
 # คำอธิบายสถาปัตยกรรมโมเดล (Model Architecture & Explanation) 🥊
 
-เอกสารนี้อธิบายถึงระบบการประมวลผลและการทำงานของโมเดล **PoseTransformer** (Level 4) ที่ใช้ในการจำแนกท่าทางการเคลื่อนไหว (Motion Classification)
+เอกสารนี้อธิบายถึงระบบการประมวลผลและการทำงานของโมเดล **MLPClassifier (Multi-Layer Perceptron)** ที่ใช้ในการจำแนกท่าทางการเคลื่อนไหว (Motion Classification) ของโปรเจกต์ NINFaceNet
 
 ## 1. ผังโครงสร้างสถาปัตยกรรม (Model Architecture Diagram)
 
 ```mermaid
 graph TD
-    A["Input Sequence (10 Frames x 108 Features)"] --> B["Linear Embedding (108 -> 128)"]
-    B --> C["Positional Encoding (เพิ่มข้อมูลลำดับเวลา)"]
-    C --> D["Transformer Encoder Layers (3 Layers)"]
-    D --> E["Multi-Head Self-Attention"]
-    E --> F["Feed Forward Network"]
-    F --> G["Global Average Pooling (ยุบรวมทุก Frame)"]
-    G --> H["Classifier Head (Fully Connected Layer)"]
-    H --> I["Output (9 Classes - e.g., Punch, Block, Dodge)"]
+    A["Input (108 Features / Frame)"] --> B["StandardScaler\n(Normalize Features)"]
+    B --> C["Hidden Layer 1\n(256 neurons, ReLU)"]
+    C --> D["Hidden Layer 2\n(128 neurons, ReLU)"]
+    D --> E["Hidden Layer 3\n(64 neurons, ReLU)"]
+    E --> F["Output Layer\n(9 neurons, Softmax)"]
+    F --> G["Predicted Class\n(e.g., left_punch, block)"]
 
-    subgraph "Transformer Block"
+    subgraph "MLPClassifier — scikit-learn"
+        C
+        D
         E
-        F
     end
 ```
 
@@ -25,59 +24,88 @@ graph TD
 
 ## 2. คำอธิบายโมเดล ML/DL (Explanation of ML/DL Model)
 
-### แนวคิดหลัก: Temporal Modeling (การเรียนรู้อมูลเชิงเวลา)
+### แนวคิดหลัก: Frame-by-Frame Classification (MLP)
 
-ใน Level ก่อนหน้านี้ โมเดลจะดูรูปภาพทีละใบ (Snapshot) ซึ่งบางครั้งแยกแยะยากว่าคนกำลัง "เริ่มต่อย" หรือ "จบการต่อย" แต่ใน **Level 4** เราเปลี่ยนมาใช้ระบบ **Temporal Modeling** โดยใช้ **Transformer Architecture**
+โมเดลหลักที่เราใช้คือ **Multi-Layer Perceptron (MLP)** ซึ่งเป็น Neural Network แบบ Fully Connected ที่จำแนกท่าทาง **ทีละเฟรม (Snapshot-based)** โดยอาศัย Feature Engineering ที่แข็งแกร่ง 108 คุณลักษณะ
 
-#### 1. การเตรียมข้อมูลด้วย Sliding Window
+#### 1. Feature Engineering — 108 Pro-Level Features
 
-เราไม่ได้ส่งข้อมูลทีละ 1 เฟรม แต่เราส่งเป็น **"ลำดับเหตุการณ์" (Sequence)** โดยใช้เทคนิค Sliding Window:
+ก่อนเข้าโมเดล ข้อมูลดิบ 132 ค่าจาก MediaPipe Pose (33 landmarks × 4) จะถูก Transform เป็น **108 คุณลักษณะ** ที่มีความหมายทางกายภาพ:
 
-- เราเก็บข้อมูลย้อนหลัง 10 เฟรม (ประมาณ 0.3 วินาที)
-- ข้อมูลที่ส่งเข้าโมเดลจะมีขนาด `(10 เฟรม, 108 คุณลักษณะ)`
-- สิ่งนี้ช่วยให้โมเดลเห็น "วิถีการเคลื่อนไหว" (Trajectory) ของมือและร่างกาย
+| Feature Group                   | ขนาด    | รายละเอียด                      |
+| ------------------------------- | ------- | ------------------------------- |
+| Body Landmarks (14 จุดหลัก × 4) | 56      | x, y, z, visibility ของแต่ละจุด |
+| Key Angles                      | 4       | มุมข้อศอก L/R และข้อไหล่ L/R    |
+| Velocity (4 จุด × 3)            | 12      | ∆position ระหว่างเฟรมล่าสุด     |
+| Bone Vectors (6 segments × 3)   | 18      | ทิศทางของแต่ละ segment          |
+| Acceleration (4 จุด × 3)        | 12      | ∆velocity ระหว่างเฟรม           |
+| Distance Features               | 6       | ระยะห่างระหว่างจุดสำคัญ         |
+| **รวม**                         | **108** |                                 |
 
-#### 2. ทำไมต้องใช้ Transformer?
+#### 2. ทำไมต้องใช้ MLP?
 
-- **Self-Attention Mechanism**: ช่วยให้โมเดลเลือกว่าเฟรมไหนใน 10 เฟรมนั้นสำคัญที่สุดสำหรับการตัดสินใจ เช่น จังหวะที่แขนเหยียดสุดในการต่อย
-- **Parallel Processing**: ประมวลผลได้เร็วและแม่นยำกว่าโมเดลแบบเก่าอย่าง LSTM ในข้อมูลที่เป็นลำดับสั้นๆ
-- **Long-range Dependencies**: เข้าใจความสัมพันธ์ระหว่างจุดเริ่มต้นและจุดสิ้นสุดของการเคลื่อนไหวได้ดีกว่า
+- **Fast Inference**: ทำนายได้ภายใน < 5ms ต่อเฟรม เหมาะกับระบบ real-time
+- **High Accuracy**: ด้วย 108 features ที่ออกแบบมาดี MLP ให้ความแม่นยำ > 95%
+- **Simple Deployment**: บันทึกและโหลดด้วย `pickle` ได้ทันที ไม่ต้องการ GPU
+- **Proven for Pose Classification**: ใช้งานได้ดีกับ skeleton-based action recognition ที่มี feature extraction ที่ดี
 
-#### 3. ส่วนประกอบของโมเดล (Inner Workings)
+#### 3. Pipeline การทำงานของ MLP
 
-- **Linear Embedding**: แปลงพิกัดร่างกาย (108 จุด) ให้เป็น Vector ขนาด 128 มิติเพื่อให้โมเดลเรียนรู้ได้ลึกขึ้น
-- **Positional Encoding**: ใส่ "ลำดับที่" ให้แต่ละเฟรม เพื่อให้โมเดลรู้ว่าเฟรมไหนมาก่อนมาหลัง (เพราะ Transformer ปกติจะไม่รู้ลำดับเวลา)
-- **Global Average Pooling**: สรุปใจความสำคัญจากทั้ง 10 เฟรมให้เหลือข้อมูลชุดเดียวที่มีประสิทธิภาพที่สุด
-- **Classifier Head**: ทำการทำนายผลลัพธ์เป็น 1 ใน 9 ท่าทางที่มีโอกาสเป็นไปได้มากที่สุด
+```
+raw frame (webcam)
+    ↓
+MediaPipe (33 landmarks × 4 = 132 values)
+    ↓
+Feature Extraction (transform_dataset) → 108 features
+    ↓
+StandardScaler (Normalize: mean=0, std=1)
+    ↓
+MLP Forward Pass:
+  Layer 1: 108 → 256 (ReLU)
+  Layer 2: 256 → 128 (ReLU)
+  Layer 3: 128 → 64  (ReLU)
+  Output:  64  → 9   (Softmax)
+    ↓
+argmax → Predicted Class (confidence ≥ 0.80 → trigger)
+```
+
+#### 4. Hyperparameter Tuning (GridSearchCV)
+
+โมเดลถูก Tune ด้วย **GridSearchCV (3-Fold Cross Validation)**:
+
+```python
+param_grid = {
+    'hidden_layer_sizes': [(128, 64), (256, 128), (256, 128, 64)],
+    'alpha':              [0.0001, 0.001],
+    'learning_rate_init': [0.001, 0.0005]
+}
+# 12 combinations × 3 folds = 36 training runs
+```
 
 ---
 
-## 3. ผังอ้างอิงจากงานวิจัย (Reference Architecture)
-
-สถาปัตยกรรมที่เราใช้ถูกอ้างอิงมาจากโมเดลมาตรฐานในระดับสากล เช่น **PoSeqTNet** (Pose Sequence Transformer) และ **PRTR** (Pose Recognition Transformer) ซึ่งมีผังการทำงานที่ได้รับการยอมรับในงานวิจัย Deep Learning ดังนี้:
-
-### โครงสร้างระดับ Block (Research Reference)
+## 3. ผังแสดง Full System Pipeline
 
 ```mermaid
 graph LR
-    subgraph "Encoder Block (อ้างอิง PoSeqTNet)"
-        Direction1["Multi-Head Attention"] --> Direction2["Add & Norm"]
-        Direction2 --> Direction3["Feed Forward"]
-        Direction3 --> Direction4["Add & Norm"]
-    end
-    Input["Pose Token"] --> Direction1
-    Direction4 --> Output["Latent Representation"]
+    A["🎥 Webcam\n30 FPS"] --> B["MediaPipe\nPose Detector"]
+    B --> C["Feature\nExtraction\n108 features"]
+    C --> D["StandardScaler\nNormalize"]
+    D --> E["MLP Classifier\n(256-128-64)"]
+    E --> F{"Confidence\n≥ 0.80?"}
+    F -- Yes --> G["Motion Analyzer\nSmoothing"]
+    G --> H["InputHandler\nKey Press"]
+    H --> I["🎮 Game"]
+    F -- No --> J["Neutral / Skip"]
 ```
 
-### แหล่งอ้างอิง (Scientific References):
+---
 
-1.  **"Attention is All You Need" (Vaswani et al.)**: สถาปัตยกรรม Transformer ดั้งเดิมที่เป็นรากฐานของระบบ Self-Attention
-2.  **"PoSeqTNet: Pose Sequence Transformer for Activity Recognition"**: งานวิจัยที่พิสูจน์ว่าการใช้ Transformer เหมาะสมที่สุดสำหรับการจำแนกท่าทางจากพิกัดร่างกาย (Skeleton-based recognition)
-3.  **"Spatial-Temporal Transformer (ST-TR)"**: แนวคิดการแยกประมวลผลมิติ "ช่องว่าง" (ข้อต่อร่างกาย) และ "เวลา" (เฟรมที่ต่อเนื่องกัน)
+## 4. แหล่งอ้างอิง (References)
+
+1. **Scikit-learn MLPClassifier**: [sklearn.neural_network.MLPClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html)
+2. **MediaPipe Pose Landmarks**: [mediapipe.dev/solutions/pose](https://mediapipe.readthedocs.io/en/latest/solutions/pose.html)
+3. **Feature Engineering for Skeleton-based Action Recognition**: ใช้แนวทางจาก OpenPose & BlazePose research ในการ compute angles, velocities, and bone vectors จาก raw landmark coordinates
 
 > [!NOTE]
-> ระบบที่เราพัฒนา (PoseTransformer) นำจุดเด่นของงานวิจัยเหล่านี้มาปรับใช้ให้เหมาะกับการทำงานแบบ **Real-time** บนเครื่องคอมพิวเตอร์ทั่วไป โดยยังคงความแม่นยำในระดับเดียวกับงานวิจัยครับ
-
-### สรุปประสิทธิภาพ
-
-การใช้ Deep Learning แบบ Transformer ทำให้ระบบ **AI Motion Controller** ของเราไม่เพียงแค่จำท่าทางนิ่งๆ ได้ แต่สามารถ **"เข้าใจจังหวะการเคลื่อนไหว"** ได้อย่างเป็นธรรมชาติและแม่นยำใกล้เคียงกับมนุษย์มากขึ้น
+> โมเดล MLP นี้ทำงานได้ดีกับการ classify ท่าทาง 9 class บน CPU ทั่วไปโดยไม่ต้องการ GPU ให้ความเร็ว inference < 5ms ต่อเฟรม ซึ่งเหมาะสำหรับระบบ real-time game controller ของโปรเจกต์นี้ครับ

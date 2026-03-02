@@ -19,7 +19,33 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.pose_detection import PoseDetector
+from utils.logger import app_logger
 import config
+
+class DataValidator:
+    """Verifies the quality of extracted landmarks before saving."""
+    @staticmethod
+    def is_valid_pose(landmarks):
+        """
+        Check if the pose is good enough to save.
+        Requires critical upper-body landmarks to be reasonably visible (visibility > 0.5)
+        Indices based on MediaPipe Pose (0-32).
+        11=Left Shoulder, 12=Right Shoulder, 15=Left Wrist, 16=Right Wrist
+        Each landmark in the list is represented by 4 values: x, y, z, visibility.
+        """
+        if not landmarks or len(landmarks) < config.NUM_LANDMARKS * 4:
+            return False, "Incomplete data"
+            
+        # Helper to get visibility of a specific landmark (index * 4 + 3)
+        def get_vis(idx):
+            return landmarks[idx * 4 + 3]
+            
+        critical_indices = [11, 12, 15, 16] # Shoulders and Wrists are vital for boxing
+        for idx in critical_indices:
+            if get_vis(idx) < 0.5:
+                return False, f"Poor visibility on key joint ({idx})"
+                
+        return True, "Valid"
 
 def get_class_file_path(label):
     """Get the CSV file path for a specific label"""
@@ -49,8 +75,13 @@ def initialize_csv_for_label(label):
 def save_frame_to_csv(landmarks, label):
     """Save landmarks and label to class-specific CSV file"""
     if landmarks is None:
-        print("⚠ No pose detected in frame. Skipping save.")
-        return False
+        app_logger.warning("No pose detected in frame. Skipping save.")
+        return False, "No Pose"
+        
+    is_valid, reason = DataValidator.is_valid_pose(landmarks)
+    if not is_valid:
+        # app_logger.warning(f"Data Validation Failed: {reason}")
+        return False, reason
     
     # Ensure file exists with headers
     initialize_csv_for_label(label)
@@ -60,8 +91,8 @@ def save_frame_to_csv(landmarks, label):
         writer = csv.writer(f)
         writer.writerow(landmarks + [label])
     
-    print(f"✓ Saved frame to {os.path.basename(file_path)}")
-    return True
+    # app_logger.info(f"Saved frame to {os.path.basename(file_path)}")
+    return True, "Saved"
 
 def draw_hud_box(frame, x, y, w, h, color=(0, 0, 0), alpha=0.5):
     """Draw a semi-transparent box"""
@@ -126,9 +157,7 @@ def add_text_overlay(frame, label, saved_count, is_recording, burst_progress, bu
 
 def main():
     """Main data collection loop"""
-    print("=" * 60)
-    print("Motion Controller - Data Collection Script (Auto-Burst Mode)")
-    print("=" * 60)
+    app_logger.info("Motion Controller - Data Collection Script (Auto-Burst Mode)")
     
     # Ensure output directory exists
     output_dir = os.path.join(config.DATASET_DIR, "by_class")
@@ -145,14 +174,14 @@ def main():
     )
     
     # Open webcam
-    print("⏳ Opening webcam...")
+    app_logger.info("Opening webcam...")
     cap = cv2.VideoCapture(config.CAMERA_INDEX)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, config.TARGET_FPS)
     
     if not cap.isOpened():
-        print("❌ Error: Cannot open webcam")
+        app_logger.error("Cannot open webcam")
         return
     
     # Setup labels
@@ -168,7 +197,7 @@ def main():
     is_recording = False
     burst_count = 0
     
-    print(f"✓ Webcam opened! Default label: '{label}'")
+    app_logger.info(f"Webcam opened! Default label: '{label}'")
     
     try:
         while True:
@@ -191,12 +220,17 @@ def main():
             current_burst_target = config.BURST_OPTIONS[burst_index]
             
             # Auto-Save Logic
+            warning_msg = ""
             if is_recording:
                 landmarks = detector.extract_landmarks(results)
                 if landmarks:
-                    if save_frame_to_csv(landmarks, label):
+                    success, msg = save_frame_to_csv(landmarks, label)
+                    if success:
                         saved_count += 1
                         burst_count += 1
+                    else:
+                        warning_msg = msg
+
                         
                     # Stop condition
                     if burst_count >= current_burst_target:
@@ -204,8 +238,10 @@ def main():
                         print(f"✅ Burst Complete! Collected {burst_count} samples for '{label}'.")
                         burst_count = 0 
                 else:
-                    # Optional: Visual warning if pose lost during recording
-                    cv2.putText(frame, "POSE LOST", (200, 240), config.FONT, 1.0, config.COLOR_BLUE, 2)
+                    warning_msg = "POSE LOST"
+                    
+                if warning_msg:
+                    cv2.putText(frame, warning_msg, (200, 240), config.FONT, 1.0, config.COLOR_RED, 2)
             
             # Add Overlay
             frame = add_text_overlay(frame, label, saved_count, is_recording, burst_count, current_burst_target)
@@ -221,15 +257,15 @@ def main():
                 if not is_recording:
                     is_recording = True
                     burst_count = 0
-                    print(f"🔴 Started Recording: {label}...")
+                    app_logger.info(f"Started Recording: {label}...")
                 else:
                     is_recording = False
-                    print("Ref stopped manually.")
+                    app_logger.info("Recording stopped manually.")
                     
             elif key == ord('s'):
                 # Cycle Burst size
                 burst_index = (burst_index + 1) % len(config.BURST_OPTIONS)
-                print(f"➜ Burst size set to: {config.BURST_OPTIONS[burst_index]}")
+                app_logger.info(f"Burst size set to: {config.BURST_OPTIONS[burst_index]}")
             
             elif key == ord('n'):
                 if is_recording:
@@ -237,7 +273,7 @@ def main():
                     
                 current_label_idx = (current_label_idx + 1) % len(available_labels)
                 label = available_labels[current_label_idx]
-                print(f"➜ Switched to label: '{label}'")
+                app_logger.info(f"Switched to label: '{label}'")
                 
             elif key == ord('q'):
                 break
@@ -246,7 +282,7 @@ def main():
         cap.release()
         cv2.destroyAllWindows()
         detector.close()
-        print("✓ Session Closed.")
+        app_logger.info("Session Closed.")
 
 if __name__ == "__main__":
     main()

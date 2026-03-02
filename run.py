@@ -42,7 +42,7 @@ except ImportError:
     sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
     from src.app.main import MotionControllerApp
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     print("🚀 Starting ML-AI Motion Controller...")
     app = MotionControllerApp()
     app.mainloop()

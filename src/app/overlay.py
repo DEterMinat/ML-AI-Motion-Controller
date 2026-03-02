@@ -89,57 +89,72 @@ class OverlayApp(ctk.CTk):
         self.progress.set(confidence)
         self.stats_label.configure(text=f"Conf: {confidence:.2f}")
 
-    def ws_client_thread(self):
-        """WebSocket Client running in separate thread"""
-        async def listen():
-            uri = "ws://localhost:8765"
-            while self.running:
-                try:
-                    # Update status
-                    self.after(0, lambda: self.stats_label.configure(text_color="gray", text="Connecting..."))
+    async def ws_client_loop(self):
+        """WebSocket Client running asynchronously"""
+        uri = "ws://localhost:8765"
+        while self.running:
+            try:
+                # Update status
+                self.stats_label.configure(text_color="gray", text="Connecting...")
+                
+                async with websockets.connect(uri) as websocket:
+                    print(f"✓ Overlay Connected to {uri}")
+                    self.stats_label.configure(text_color="white", text="Connected")
                     
-                    async with websockets.connect(uri) as websocket:
-                        print(f"✓ Overlay Connected to {uri}")
-                        self.after(0, lambda: self.stats_label.configure(text_color="white", text="Connected"))
-                        
-                        while self.running:
-                            try:
-                                msg = await websocket.recv()
-                                data = json.loads(msg)
-                                
-                                # Check for Shutdown Signal
-                                if data.get("event") == "shutdown":
-                                    print("✓ Server Shutdown received")
-                                    self.running = False
-                                    self.destroy() # Close Window
-                                    return
+                    while self.running:
+                        try:
+                            # Use wait_for to allow checking self.running periodically
+                            msg = await asyncio.wait_for(websocket.recv(), timeout=1.0)
+                            data = json.loads(msg)
+                            
+                            # Check for Shutdown Signal
+                            if data.get("event") == "shutdown":
+                                print("✓ Server Shutdown received")
+                                self.running = False
+                                return
 
-                                if "action" in data:
-                                    self.after(0, lambda: self.update_hud(data.get("action", "-"), data.get("confidence", 0.0)))
-                            except websockets.exceptions.ConnectionClosed:
-                                print("⚠ Connection Closed")
-                                break
-                            except Exception as e:
-                                print(f"⚠ Receive Error: {e}")
-                                break
+                            if "action" in data:
+                                self.update_hud(data.get("action", "-"), data.get("confidence", 0.0))
                                 
-                except (OSError, ConnectionRefusedError):
-                    # print("Wait for server...")
-                    self.after(0, lambda: self.stats_label.configure(text_color="red", text="No Server"))
-                    await asyncio.sleep(2)
-                except Exception as e:
-                    print(f"⚠ Client Error: {e}")
-                    await asyncio.sleep(2)
-        
-        try:
-            asyncio.run(listen())
-        except Exception:
-            pass
+                        except asyncio.TimeoutError:
+                            continue # Just check self.running again
+                        except websockets.exceptions.ConnectionClosed:
+                            print("⚠ Connection Closed")
+                            break
+                        except Exception as e:
+                            print(f"⚠ Receive Error: {e}")
+                            break
+                            
+            except (OSError, ConnectionRefusedError):
+                self.stats_label.configure(text_color="red", text="No Server")
+                await asyncio.sleep(2)
+            except Exception as e:
+                print(f"⚠ Client Error: {e}")
+                await asyncio.sleep(2)
 
-    def start_client(self):
-        self.client_thread = threading.Thread(target=self.ws_client_thread, daemon=True)
-        self.client_thread.start()
+    async def tkinter_loop(self):
+        """Async loop to update the CustomTkinter UI"""
+        while self.running:
+            self.update() # Update UI
+            await asyncio.sleep(0.02) # Yield control back to event loop (~50Hz update rate)
+            
+        self.destroy() # Close window when running becomes False
+
+    async def run_app(self):
+        """Run both loops concurrently"""
+        await asyncio.gather(
+            self.tkinter_loop(),
+            self.ws_client_loop()
+        )
+
+def main():
+    app = OverlayApp()
+    try:
+        asyncio.run(app.run_app())
+    except KeyboardInterrupt:
+        pass
+    except asyncio.CancelledError:
+        pass
 
 if __name__ == "__main__":
-    app = OverlayApp()
-    app.mainloop()
+    main()

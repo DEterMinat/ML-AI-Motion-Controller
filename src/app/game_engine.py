@@ -24,6 +24,7 @@ from utils.camera_stream import CameraStream
 from utils.fps_limiter import FPSLimiter
 from utils.motion_analyzer import MotionAnalyzer
 from utils.ws_server import WebSocketServer
+from utils.logger import app_logger
 import config
 
 class GameControllerThreaded:
@@ -31,7 +32,7 @@ class GameControllerThreaded:
     
     def __init__(self):
         """Initialize game controller"""
-        print("Initializing Threaded Game Controller...")
+        app_logger.info("Initializing Threaded Game Controller...")
         
         self.model, self.encoder, self.scaler = self.load_model_and_encoder()
         self.detector = PoseDetector(
@@ -104,6 +105,11 @@ class GameControllerThreaded:
         
         return predicted_label, confidence
 
+    def update_bindings(self, new_bindings):
+        """Update key bindings dynamically"""
+        config.KEY_BINDINGS = new_bindings
+        app_logger.info(f"Game Engine bindings updated: {list(new_bindings.keys())}")
+
     def trigger_action(self, confirmed_action, confidence):
         """Trigger game action"""
         # Broadcast via WebSocket
@@ -118,12 +124,12 @@ class GameControllerThreaded:
             return f"{confirmed_action} (No Key)"
             
         # Special handling for Continuous Actions (Block)
-        if confirmed_action == 'block':
+        if confirmed_action == 'defense':
             self.input_handler.handle_hold(key, True)
             return f"✓ BLOCKING (Hold)"
         else:
             # If doing anything else, ensure Block is released
-            block_key = config.KEY_BINDINGS.get('block')
+            block_key = config.KEY_BINDINGS.get('defense')
             if block_key:
                 self.input_handler.handle_hold(block_key, False)
         
@@ -179,23 +185,23 @@ class GameControllerThreaded:
 
     def start(self):
         """Start camera and resources"""
-        print("Starting camera stream...")
+        app_logger.info("Starting camera stream...")
         self.camera.start()
         self.ws_server.start() # Start WebSocket
         time.sleep(1.0) # Warmup
-        print("✓ System Ready!")
+        app_logger.info("System Ready!")
         
     def stop(self):
         """Stop camera and resources"""
         self.running = False
-        print("Cleaning up resources...")
+        app_logger.info("Cleaning up resources...")
         self.camera.stop()
         self.ws_server.stop() # Stop WebSocket
         try:
             self.detector.close()
         except:
             pass # Ignore errors during shutdown
-        print("✓ Shutdown complete")
+        app_logger.info("Shutdown complete")
 
     def process_frame(self):
         """
@@ -282,9 +288,7 @@ class GameControllerThreaded:
 
     def run(self):
         """Main threaded game loop (Legacy/Headless mode)"""
-        print("\n" + "=" * 60)
-        print("🥊 Motion Controller - Threaded High-Performance Mode")
-        print("=" * 60)
+        app_logger.info("Motion Controller - Threaded High-Performance Mode")
         
         self.start()
         
@@ -303,13 +307,13 @@ class GameControllerThreaded:
                     self.action_count.clear()
                     self.input_handler.reset_cooldown()
                     self.analyzer.reset()
-                    print("✓ Statistics reset")
+                    app_logger.info("Statistics reset")
                 elif key == ord('c'):
                     self.analyzer.reset()
-                    print("✓ Recalibrated")
+                    app_logger.info("Recalibrated")
                     
         except KeyboardInterrupt:
-            print("\nStopping...")
+            app_logger.info("Stopping...")
             
         finally:
             self.stop()
@@ -321,7 +325,7 @@ def main():
         controller = GameControllerThreaded()
         return controller.run()
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        app_logger.error(f"Error: {e}")
         import traceback
         traceback.print_exc()
         return 1

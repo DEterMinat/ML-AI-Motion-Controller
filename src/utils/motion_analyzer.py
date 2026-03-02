@@ -14,16 +14,20 @@ class MotionAnalyzer:
     3. State Machine: Enforces "Neutral Reset" to prevent accidental double-hits.
     """
     
-    def __init__(self, history_size=6, consistency_threshold=4):
+    def __init__(self, history_size=6, consistency_threshold=4, temporal_window=3):
         """
         Initialize Motion Analyzer
         
         Args:
             history_size: Number of frames to keep in buffer
             consistency_threshold: Minimum matching frames to confirm prediction
+            temporal_window: Number of recent frames to use for temporal smoothing (voting)
         """
         self.history = deque(maxlen=history_size)
         self.consistency_threshold = consistency_threshold
+        
+        # Temporal Smoothing Buffer [NEW]
+        self.prediction_buffer = deque(maxlen=temporal_window)
         
         self.state = "NEUTRAL"  # States: NEUTRAL, ACTION
         self.last_action = None
@@ -31,28 +35,37 @@ class MotionAnalyzer:
         
     def process_prediction(self, label, confidence):
         """
-        Process a new frame prediction.
+        Process a new frame prediction with Temporal Smoothing.
         
         Returns:
             triggered_action: The action label if a new action is confirmed, else None.
             is_consistent: Boolean indicating if the input is stable.
         """
-        # 1. Add to history (ignore None/Low confidence inputs if you want, 
-        # or treat them as 'unknown' to break streaks. Here we treat None as 'neutral' or break)
-        if label is None:
-            self.history.append("neutral")
-        else:
-            self.history.append(label)
+        # 1. Temporal Smoothing (Prediction Buffer)
+        # Instead of deciding immediately, we buffer the raw labels
+        raw_label = label if label is not None else "neutral"
+        self.prediction_buffer.append(raw_label)
+        
+        # Wait until we have enough frames for smoothing
+        if len(self.prediction_buffer) < self.prediction_buffer.maxlen:
+            return None, False
             
-        # Wait until history is full-ish
+        # Get the 'smoothed' label by majority vote over the temporal window
+        counts = Counter(self.prediction_buffer)
+        smoothed_label, _ = counts.most_common(1)[0]
+        
+        # 2. Add smoothed label to action history
+        self.history.append(smoothed_label)
+            
+        # Wait until history is full-ish for consistency checking
         if len(self.history) < self.consistency_threshold:
             return None, False
             
-        # 2. Get most frequent label in recent history (Smoothing)
-        counts = Counter(self.history)
-        most_common_label, count = counts.most_common(1)[0]
+        # 3. Get most frequent label in recent history for Consistency Checking
+        hist_counts = Counter(self.history)
+        most_common_label, count = hist_counts.most_common(1)[0]
         
-        # 3. Check Consistency
+        # 4. Check Consistency
         is_consistent = count >= self.consistency_threshold
         
         if not is_consistent:

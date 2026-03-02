@@ -18,6 +18,7 @@ import subprocess
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.game_engine import GameControllerThreaded
+from utils.logger import app_logger
 import config
 
 # Set theme
@@ -59,9 +60,9 @@ class MotionControllerApp(ctk.CTk):
                 self.overlay_process.terminate()
                 
             self.overlay_process = subprocess.Popen([sys.executable, script_path])
-            print("✓ Overlay Launched")
+            app_logger.info("Overlay Launched")
         except Exception as e:
-            print(f"❌ Failed to launch overlay: {e}")
+            app_logger.error(f"Failed to launch overlay: {e}")
 
     # ... (Omitted methods for brevity) ...
 
@@ -73,7 +74,7 @@ class MotionControllerApp(ctk.CTk):
         # Kill Overlay
         if self.overlay_process and self.overlay_process.poll() is None:
             self.overlay_process.terminate()
-            print("✓ Overlay closed")
+            app_logger.info("Overlay closed")
             
         self.destroy()
         
@@ -116,6 +117,11 @@ class MotionControllerApp(ctk.CTk):
         self.cool_slider.set(config.ACTION_COOLDOWN)
         self.cool_slider.grid(row=7, column=0, padx=20, pady=(0,10))
         
+        # Profile Settings Button [NEW]
+        self.settings_btn = ctk.CTkButton(self.sidebar, text="Settings / Profiles", command=self.open_settings,
+                                       fg_color="#0055AA", hover_color="#004488")
+        self.settings_btn.grid(row=8, column=0, padx=20, pady=10)
+        
         # Status
         self.status_label = ctk.CTkLabel(self.sidebar, text="Status: Stopped", text_color="gray")
         self.status_label.grid(row=9, column=0, padx=20, pady=10)
@@ -125,15 +131,27 @@ class MotionControllerApp(ctk.CTk):
                                        fg_color="#555555", hover_color="#777777")
         self.overlay_btn.grid(row=10, column=0, padx=20, pady=20)
         
+    def open_settings(self):
+        """Open the Profile & Settings UI"""
+        from app.profiles_ui import SettingsUI
+        
+        def on_bindings_changed(new_bindings):
+            # Update the game controller with new bindings
+            if hasattr(self, 'controller'):
+                self.controller.update_bindings(new_bindings)
+                
+        # Create and show the settings window
+        SettingsUI(self, on_profile_changed_callback=on_bindings_changed)
+
     def launch_overlay(self):
         """Launch the transparent overlay process"""
         try:
             # Use sys.executable to ensure we use the same venv python
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.py")
             subprocess.Popen([sys.executable, script_path])
-            print("✓ Overlay Launched")
+            app_logger.info("Overlay Launched")
         except Exception as e:
-            print(f"❌ Failed to launch overlay: {e}")
+            app_logger.error(f"Failed to launch overlay: {e}")
 
     def create_main_area(self):
         """Create main area for camera feed"""
@@ -202,7 +220,7 @@ class MotionControllerApp(ctk.CTk):
         try:
             frame, stats = self.controller.process_frame()
         except Exception as e:
-            print(f"Update Error: {e}")
+            app_logger.error(f"Update Error: {e}")
             self.after(100, self.update_frame) # Retry slowly
             return
         

@@ -17,6 +17,7 @@ customtkinter
 Pillow
 packaging
 websockets
+python-dotenv
 
 # Deep Learning (for 1D-CNN)
 torch>=2.0.0

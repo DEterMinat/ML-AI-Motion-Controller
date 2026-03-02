@@ -1,0 +1,19 @@
+{
+  "profiles": {
+    "Boxing (Default)": {
+      "left_punch": "left",
+      "right_punch": "right",
+      "defense": "f",
+      "dodge_left": "q",
+      "dodge_right": "e"
+    },
+    "Street Fighter": {
+      "left_punch": "u",
+      "right_punch": "i",
+      "defense": "o",
+      "dodge_left": "j",
+      "dodge_right": "k"
+    }
+  },
+  "active_profile": "Boxing (Default)"
+}
