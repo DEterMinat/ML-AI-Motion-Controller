@@ -154,14 +154,14 @@ python training/train.py --no-augment
 
 | Action          | Key Binding   | Description    |
 | :-------------- | :------------ | :------------- |
-| **Left Punch**  | `Left Click`  | ต่อยซ้าย       |
-| **Right Punch** | `Right Click` | ต่อยขวา        |
-| **Dodge Left**  | `A` + `Space` | หลบซ้าย        |
-| **Dodge Right** | `D` + `Space` | หลบขวา         |
+| **Left Punch**  | `Left`        | ต่อยซ้าย       |
+| **Right Punch** | `Right`       | ต่อยขวา        |
+| **Dodge Left**  | `Q`           | หลบซ้าย        |
+| **Dodge Right** | `E`           | หลบขวา         |
 | **Dodge Front** | `W` + `Space` | หลบหน้า (Dash) |
 | **Dodge Back**  | `S` + `Space` | หลบหลัง        |
-| **Block**       | `B`           | ป้องกัน        |
-| **Final Skill** | `F`           | ท่าไม้ตาย      |
+| **Defense**     | `F`           | ป้องกัน        |
+| **Final Skill** | `X`           | ท่าไม้ตาย      |
 
 ---
 

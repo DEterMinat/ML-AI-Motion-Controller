@@ -1,4 +1,4 @@
-# Experiment Plan — ML-AI Motion Controller (NINFaceNet)
+# Experiment Plan — ML-AI Motion Controller
 
 **Due:** 23 February 2026  
 **Project:** Real-time Pose-Based Game Controller  

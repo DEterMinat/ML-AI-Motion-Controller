@@ -12,9 +12,9 @@
 |------|-------|--------------|-----------------|----------------|
 | 🥇 1 | **MLP** | **99.26%** | Frame-based + Augmentation (2x data) | <5ms (CPU) |
 | 🥈 2 | **Transformer** | **99.12%** | Temporal sequences (10 frames) | ~10ms (CPU) |
-| 🥉 3 | **LSTM/GRU** | **95.50%** | BiLSTM+GRU, temporal patterns | 15-20ms (CPU) |
+| 🥉 3 | **LSTM/GRU** | **95.50%** | BiLSTM+GRU, temporal patterns | ~1.32ms (measured) |
 | 4 | **SVM** | **95.00%** | Baseline, RBF kernel | <2ms (CPU) |
-| 5 | **ST-GCN** | **87.33%** | Graph convolution on skeleton | ~15ms (GPU) |
+| 5 | **ST-GCN** | **87.33%** | Graph convolution on skeleton | ~1.06ms (measured) |
 
 ---
 
@@ -46,7 +46,7 @@
 - **Notebook**: [training/executed/executed_train_svm.ipynb](../training/executed/executed_train_svm.ipynb)
 - **Features**: 108 static features (frame-by-frame)
 - **Architecture**: SVC with RBF kernel
-- **Training**: GridSearchCV, C=10, gamma=0.1
+- **Training**: GridSearchCV, C=10, gamma=0.001
 
 ### ST-GCN (87.33%)
 - **Location**: `reports/model_comparison/stgcn/stgcn_20260305_230138/`

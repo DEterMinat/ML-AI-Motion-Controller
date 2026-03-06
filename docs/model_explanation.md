@@ -1,6 +1,6 @@
 # คำอธิบายสถาปัตยกรรมโมเดล (Model Architecture & Explanation) 🥊
 
-เอกสารนี้อธิบายถึงระบบการประมวลผลและการทำงานของโมเดล **MLPClassifier (Multi-Layer Perceptron)** ที่ใช้ในการจำแนกท่าทางการเคลื่อนไหว (Motion Classification) ของโปรเจกต์ NINFaceNet
+เอกสารนี้อธิบายถึงระบบการประมวลผลและการทำงานของโมเดล **MLPClassifier (Multi-Layer Perceptron)** ที่ใช้ในการจำแนกท่าทางการเคลื่อนไหว (Motion Classification) ของโปรเจกต์ ML-AI Motion Controller
 
 ## 1. ผังโครงสร้างสถาปัตยกรรม (Model Architecture Diagram)
 
