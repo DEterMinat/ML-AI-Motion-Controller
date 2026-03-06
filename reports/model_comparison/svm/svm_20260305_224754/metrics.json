@@ -1,0 +1,27 @@
+{
+  "model": "SVM (RBF)",
+  "timestamp": "20260305_224754",
+  "run_folder": "svm_20260305_224754",
+  "accuracy": 0.95,
+  "macro_f1": 0.9437780035234028,
+  "inference_latency_ms": 0.16489500005263835,
+  "train_samples": 2500,
+  "test_samples": 600,
+  "num_features": 108,
+  "classes": [
+    "block",
+    "dodge_back",
+    "dodge_front",
+    "dodge_left",
+    "dodge_right",
+    "final_skill",
+    "left_punch",
+    "neutral",
+    "right_punch"
+  ],
+  "best_params": {
+    "C": 10,
+    "gamma": 0.001,
+    "kernel": "rbf"
+  }
+}

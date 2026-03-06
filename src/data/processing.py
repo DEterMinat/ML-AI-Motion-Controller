@@ -85,3 +85,84 @@ def create_sequences(df_pro, window_size=10, step_size=1):
             
     return np.array(sequences), np.array(labels)
 
+
+def video_based_split(X, y, test_size=0.2, val_size=0.15, chunk_size=50, random_state=42):
+    """
+    STRATIFIED Split data by video chunks instead of random frames to prevent data leakage.
+    
+    Ensures EVERY CLASS appears in train/val/test sets by splitting each class separately.
+    Assumes sequential frames are from same video. Splits data into chunks (pseudo-videos)
+    and ensures no chunk appears in both train and test sets.
+    
+    Args:
+        X: Feature array (N, ...) or (N, window, features)
+        y: Labels (N,)
+        test_size: Proportion for test set (0-1)
+        val_size: Proportion for validation set (0-1), only used if > 0
+        chunk_size: Number of consecutive samples per video chunk
+        random_state: Random seed
+        
+    Returns:
+        If val_size > 0: X_train, X_val, X_test, y_train, y_val, y_test
+        If val_size == 0: X_train, X_test, y_train, y_test
+    """
+    np.random.seed(random_state)
+    
+    # Initialize split containers
+    train_indices = []
+    val_indices = []
+    test_indices = []
+    
+    # Process each class separately (STRATIFIED)
+    unique_classes = np.unique(y)
+    
+    for label in unique_classes:
+        # Get indices for this class
+        class_mask = (y == label)
+        class_indices = np.where(class_mask)[0]
+        n_class_samples = len(class_indices)
+        
+        # Create chunk IDs for this class
+        n_class_chunks = (n_class_samples + chunk_size - 1) // chunk_size
+        chunk_ids = np.repeat(np.arange(n_class_chunks), chunk_size)[:n_class_samples]
+        
+        # Shuffle chunk order (but keep frames within chunk together)
+        unique_chunks = np.unique(chunk_ids)
+        np.random.shuffle(unique_chunks)
+        
+        # Split chunks into train/val/test (ensure at least 1 chunk per split)
+        n_test_chunks = max(1, int(len(unique_chunks) * test_size))
+        n_val_chunks = max(1, int(len(unique_chunks) * val_size)) if val_size > 0 else 0
+        n_train_chunks = len(unique_chunks) - n_test_chunks - n_val_chunks
+        
+        # Handle case where we don't have enough chunks
+        if n_train_chunks < 1:
+            # Fallback: at least 1 chunk for train
+            n_train_chunks = 1
+            n_test_chunks = max(1, (len(unique_chunks) - 1) // 2)
+            n_val_chunks = len(unique_chunks) - n_train_chunks - n_test_chunks
+        
+        train_chunks = unique_chunks[:n_train_chunks]
+        test_chunks = unique_chunks[n_train_chunks:n_train_chunks + n_test_chunks]
+        
+        # Get indices for each split (relative to class_indices)
+        for i, chunk_id in enumerate(chunk_ids):
+            actual_idx = class_indices[i]
+            if chunk_id in train_chunks:
+                train_indices.append(actual_idx)
+            elif chunk_id in test_chunks:
+                test_indices.append(actual_idx)
+            elif val_size > 0:
+                val_indices.append(actual_idx)
+    
+    # Convert to arrays and sort (to maintain some order)
+    train_indices = np.array(train_indices)
+    test_indices = np.array(test_indices)
+    
+    if val_size > 0:
+        val_indices = np.array(val_indices)
+        return (X[train_indices], X[val_indices], X[test_indices], 
+                y[train_indices], y[val_indices], y[test_indices])
+    else:
+        return X[train_indices], X[test_indices], y[train_indices], y[test_indices]
+

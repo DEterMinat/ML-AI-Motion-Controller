@@ -1,0 +1,25 @@
+{
+  "model": "LSTM/GRU",
+  "timestamp": "20260305_230108",
+  "run_folder": "lstm_gru_20260305_230108",
+  "accuracy": 0.955,
+  "macro_f1": 0.8468879370008691,
+  "inference_latency_ms": 1.315189333205732,
+  "train_samples": 2000,
+  "val_samples": 419,
+  "test_samples": 600,
+  "window_size": 10,
+  "num_features": 108,
+  "hidden_size": 128,
+  "classes": [
+    "block",
+    "dodge_back",
+    "dodge_front",
+    "dodge_left",
+    "dodge_right",
+    "final_skill",
+    "left_punch",
+    "neutral",
+    "right_punch"
+  ]
+}

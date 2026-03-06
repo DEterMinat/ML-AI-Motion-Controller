@@ -1,0 +1,25 @@
+{
+  "model": "ST-GCN (Lightweight)",
+  "timestamp": "20260305_224927",
+  "run_folder": "stgcn_20260305_224927",
+  "accuracy": 0.8733333333333333,
+  "macro_f1": 0.7878107290965887,
+  "inference_latency_ms": 0.6407513331699496,
+  "train_samples": 2000,
+  "val_samples": 419,
+  "test_samples": 600,
+  "window_size": 10,
+  "num_nodes": 14,
+  "coords_per_node": 3,
+  "classes": [
+    "block",
+    "dodge_back",
+    "dodge_front",
+    "dodge_left",
+    "dodge_right",
+    "final_skill",
+    "left_punch",
+    "neutral",
+    "right_punch"
+  ]
+}
