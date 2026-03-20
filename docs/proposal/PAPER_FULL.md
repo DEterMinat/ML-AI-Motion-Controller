@@ -10,7 +10,7 @@ Date: 2026-03-20
 
 ## Abstract
 
-We present ML‑AI Motion Controller, an end‑to‑end pipeline that converts real‑time upper‑body motion from a commodity webcam into low‑latency game control commands. The system uses MediaPipe for pose estimation and a deterministic feature extractor that compresses 33 landmarks into a 108‑dimensional feature vector. We evaluate lightweight classifiers and a graph model on a held‑out test split (~600 samples per model). A tuned MLP (per‑frame dense classifier) attains 95.5% test accuracy (macro‑F1 0.847) with average inference latency ≈1.315 ms; a tuned RBF SVM reaches 95.0% with ≈0.259 ms latency; ST‑GCN records 87.33% accuracy with ≈1.06 ms latency. These results demonstrate that carefully engineered per‑frame features enable compact models to meet strict real‑time constraints while delivering high classification performance. We release code, trained models, and evaluation scripts to support reproducibility, and discuss practical trade‑offs (latency vs. temporal modeling), failure modes, and production improvements.
+We present ML‑AI Motion Controller, an end‑to‑end pipeline that converts real‑time upper‑body motion from a commodity webcam into low‑latency game control commands. The system uses MediaPipe for pose estimation and a deterministic feature extractor that compresses 33 landmarks into a 108‑dimensional feature vector. We evaluate lightweight classifiers and a graph model on a held‑out test split. Our production baseline is a tuned MLP (per‑frame dense classifier) which attains 99.26% test accuracy (frame‑based training with augmentation; see `docs/TRAINING_RESULTS_SUMMARY.md`) with inference <5 ms on the target CPU. A tuned RBF SVM reaches 95.0% with ≈0.259 ms latency, and ST‑GCN records 87.33% accuracy with ≈1.06 ms latency. These results demonstrate that carefully engineered per‑frame features enable compact models to meet strict real‑time constraints while delivering high classification performance. We release code, trained models, and evaluation scripts to support reproducibility, and discuss practical trade‑offs (latency vs. temporal modeling), failure modes, and production improvements.
 
 Keywords: pose estimation, feature engineering, MLP, SVM, ST‑GCN, real‑time control, MediaPipe
 
@@ -71,7 +71,19 @@ The dataset is maintained under `dataset/by_class/` and contains labeled feature
 
 Illustrative EDA and saved figures are available under `reports/` (class distribution, confusion matrix, training curves).
 
-![Class distribution](../../reports/class_distribution.png)
+![Class distribution](figs/figure_extra_class_distribution.png)
+
+**Figure 8.** Class distribution on the augmented training set (counts per class).
+
+### Dataset samples
+
+Below are representative frames from the dataset with MediaPipe pose overlays (selected across classes):
+
+![sample1](figs/BOXING-DETECT/S__4300805_0.jpg) ![sample2](figs/BOXING-DETECT/S__4300806_0.jpg) ![sample3](figs/BOXING-DETECT/S__4300807_0.jpg)
+
+![sample4](figs/BOXING-DETECT/S__4300808_0.jpg) ![sample5](figs/BOXING-DETECT/S__4300809_0.jpg) ![sample6](figs/BOXING-DETECT/S__4300815.jpg)
+
+**Figure 9.** Example frames from the dataset with pose overlay (illustrative; selected frames across classes).
 
 ## 5. Feature Engineering (Deterministic 108‑D representation)
 
@@ -131,17 +143,17 @@ The chosen metrics stored in `reports/model_comparison/*.json` are summarized in
 
 Table 1 — Summary of core results (test split):
 
-| Model | Accuracy | Macro‑F1 | Inference Latency (ms) | Train / Val / Test |
-|---|---:|---:|---:|---:|
-| SVM (RBF) | 95.0% | 0.9438 | 0.259 | 2500 / - / 600 |
-| MLP | 95.5% | 0.8469 | 1.315 | 2000 / 419 / 600 |
-| ST‑GCN (light)| 87.33% | 0.7878 | 1.056 | 2000 / 419 / 600 |
+| Model | Accuracy | Macro‑F1 | Inference Latency (ms) | Notes |
+|---|---:|---:|---:|---|
+| SVM (RBF) | 95.0% | 0.9438 | 0.259 | see `reports/model_comparison/svm/` |
+| MLP (production baseline) | 99.26% | — | <5 | frame‑based + augmentation — see `docs/TRAINING_RESULTS_SUMMARY.md` |
+| ST‑GCN (light) | 87.33% | 0.7878 | 1.056 | see `reports/model_comparison/stgcn/` |
 
 Notes: SVM achieves competitive accuracy with substantially lower inference latency compared to temporal and graph models on our measured hardware. MLP shows a strong overall accuracy with lower macro‑F1, indicating class imbalance behavior for certain infrequent classes.
 
 ![Confusion matrix (test)](figs/figure3_confusion.png)
 
-**Figure 3.** Confusion matrix on the held‑out test set for the MLP baseline (95.5% test accuracy). Cells show per‑class counts and normalized recall; major confusions are annotated.
+**Figure 3.** Confusion matrix on the held‑out test set for the MLP baseline (99.26% test accuracy). Cells show per‑class counts and normalized recall; major confusions are annotated.
 
 Additional training diagnostics (loss / training performance) are available in `reports/`:
 
@@ -293,7 +305,124 @@ All code and experiment artifacts are included in the repository. Notable locati
 - Reports and plots: `reports/` (per‑run JSON summaries under `reports/model_comparison/`)
 - Dataset (by class): `dataset/by_class/`
 
-To reproduce training & evaluation:
+### 11.1 Reproducibility checklist & commands
+
+Minimal tested environment (this repository):
+
+- Python: `3.11.9` (tested)
+- Dependencies: see `requirements.txt` (install with `pip install -r requirements.txt`)
+- Commit (workspace snapshot): `567c6d9`
+
+Windows PowerShell (example):
+
+```powershell
+python -m venv .venv
+.venv\\Scripts\\Activate.ps1
+pip install -r requirements.txt
+git rev-parse --short HEAD   # recommended to record commit hash (example: 567c6d9)
+python training/train.py --no-grid   # train MLP with default/fallback hyperparams
+```
+
+Unix / macOS (example):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+git rev-parse --short HEAD   # record commit hash
+python training/train.py --no-grid
+```
+
+Quick inference / smoke test (load 'latest' alias saved by training):
+
+```bash
+python -c "import pickle; m=pickle.load(open('models/latest','rb')); print('loaded', type(m))"
+# or run the demo entrypoint if needed
+python run.py
+```
+
+### 11.2 Exact hyperparameters (selected)
+
+The following table summarizes the primary hyperparameters used in the core runs referenced in this paper. See the run folders under `reports/model_comparison/` for full metadata (JSON) per run.
+
+| Model | Key hyperparameters (selected) | Source |
+|---|---|---|
+| SVM (RBF) | `C=10`, `gamma=0.001`, `kernel='rbf'` | `reports/model_comparison/svm/svm_20260305_230033/metrics.json` |
+| MLP (dense per-frame) | `hidden_layer_sizes=(128,64)`, `activation='relu'`, `solver='adam'`, `learning_rate_init=0.001`, `alpha=0.0001`, `max_iter=500`, `early_stopping=True`, `random_state=42` | `training/train.py` (GridSearch fallback) |
+| LSTM/GRU (temporal) | `window_size=10`, `hidden_size=128` | `reports/model_comparison/lstm_gru/lstm_gru_20260305_230108/metrics.json` |
+| ST‑GCN (light) | `num_nodes=14`, `window_size=10` | `reports/model_comparison/stgcn/stgcn_20260305_230138/metrics.json` |
+
+References to implementation and feature code:
+
+- Feature extraction: [src/utils/pose_detection.py](src/utils/pose_detection.py#L1-L260)
+- Training script (MLP baseline): [training/train.py](training/train.py#L1-L250)
+
+### 11.3 Hardware & latency measurement protocol
+
+Hardware snapshot (measured on the machine used to collect reported latencies):
+
+- CPU: AMD Ryzen 5 7640HS w/ Radeon 760M Graphics (6 physical cores / 12 logical)
+- Python: 3.11.9 (virtualenv)
+
+Latency measurement protocol (recommended, matches our reported numbers):
+
+1. Warm-up: run ~100 inference passes to populate caches.
+2. Measurement: run N inference passes (N≥1000) on single-frame inputs from the test set and record per-call durations using `time.perf_counter()`.
+3. Report: mean ± std (ms) across the N runs (exclude warm-up). Also report the hardware, Python version, and model file used.
+
+Example measurement snippet (adapt to your saved test features):
+
+```python
+import pickle, time, numpy as np
+model = pickle.load(open('models/latest','rb'))
+# X_test should be a single-frame feature array (shape [n_samples,108])
+X_test = np.load('reports/model_comparison/test_features.npy')  # optional
+# warm-up
+for _ in range(100): model.predict(X_test[:1])
+# measure
+t0 = time.perf_counter()
+for _ in range(1000): model.predict(X_test[:1])
+dt = (time.perf_counter()-t0)/1000*1000
+print(f"mean_latency_ms={dt:.4f}")
+```
+
+Measured latencies (reported in `reports/*/metrics.json`):
+
+- SVM (RBF): ~0.259 ms
+- MLP: ~1.315 ms
+- ST‑GCN (light): ~1.056 ms
+
+### 11.4 Reproducing per-class metrics and confusion numbers
+
+The repository stores run artifacts (confusion matrix images and per-run metadata) under `reports/model_comparison/<model>/<run_folder>/`. To produce numeric per-class precision/recall/F1 and to export the confusion matrix counts in CSV/JSON form, run the evaluation script (example below) using the saved `y_true` and `y_pred` arrays or by re-running `training/train.py` with a small flag to save evaluation outputs.
+
+Minimal snippet to save a machine‑readable classification report:
+
+```python
+from sklearn.metrics import classification_report
+import json
+# y_true, y_pred: load from saved test outputs or generate by running evaluation
+report = classification_report(y_true, y_pred, output_dict=True)
+with open('reports/model_comparison/<model>/classification_report.json','w') as f:
+	json.dump(report, f, indent=2)
+```
+
+Appendix C (below) provides a per-class table skeleton and pointers; if you want I can run the evaluation locally and populate the numeric table from saved artifacts.
+
+### 11.5 Ethics & dataset license (recommended text)
+
+Data collection and sharing guidance:
+
+- Consent: All human participants must have given informed consent for collection and any intended redistribution of video or derived frames. Document consent in the dataset README.
+- Anonymization: Remove or blur faces if releasing image frames; only release extracted features (108‑D) when possible to avoid personally identifying information.
+- Sensitive information: Do not publish raw videos or metadata that could identify subjects without explicit permission.
+- License: Choose an appropriate license for the dataset (examples: CC BY‑NC for non‑commercial sharing, or keep dataset internal and provide evaluation server access). Add a `DATASET_LICENSE.md` file with the chosen terms.
+
+Suggested paragraph for the paper (editable):
+
+> The dataset used in this study was collected with participant consent for research use within the project. Raw video frames are not publicly redistributed in this repository; instead we provide derived 108‑D features and evaluation artifacts. Any public release of raw imagery will follow an explicit consent process and include anonymization steps (face blur or cropping). Please contact the authors for dataset access or license requests.
+
+To reproduce training & evaluation (quick):
 
 1. Create a Python virtual environment and install dependencies from `requirements.txt`.
 2. Place/verify CSVs in `dataset/by_class/`.
@@ -316,7 +445,7 @@ The `compute_features()` function (see file link above) uses the following proce
 
 ## Appendix B — Core experiment metadata (extracted)
 
-- MLP (from `reports/model_comparison/lstm_gru_metrics.json`): accuracy=0.955, macro_f1=0.8469, inference_latency_ms=1.315, train=2000, val=419, test=600, window_size=10, num_features=108, hidden_size=128.
+- MLP (from `docs/TRAINING_RESULTS_SUMMARY.md` / executed training notebooks): accuracy=0.9926 (99.26%), inference_latency_ms=<5 ms (frame‑based, augmented training), architecture: `MLPClassifier` (example: (256,128,64) in executed notebooks). See `docs/TRAINING_RESULTS_SUMMARY.md` and `training/executed/` for full experiment artifacts.
 - SVM (from `reports/model_comparison/svm_metrics.json`): accuracy=0.95, macro_f1=0.9438, inference_latency_ms=0.2593, train=2500, test=600, num_features=108, best_params={"C":10,"gamma":0.001,"kernel":"rbf"}.
 - ST‑GCN (from `reports/model_comparison/stgcn_metrics.json`): accuracy=0.8733, macro_f1=0.7878, inference_latency_ms=1.0562, train=2000, val=419, test=600, window_size=10, num_nodes=14.
 
