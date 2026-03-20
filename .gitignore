@@ -6,7 +6,7 @@ env/
 Lib/
 Scripts/
 pyvenv.cfg
-
+docs
 # ==================== PYTHON CACHE & COMPILED ====================
 __pycache__/
 *.py[cod]
