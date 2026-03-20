@@ -23,16 +23,17 @@ MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 RAW_DATA_FILE = os.path.join(DATASET_DIR, "raw_poses.csv")
 CLEANED_DATA_FILE = os.path.join(DATASET_DIR, "cleaned_data.csv")
 
-# Model files
-MODEL_FILE = os.path.join(MODELS_DIR, "boxing_model.pkl")
-ENCODER_FILE = os.path.join(MODELS_DIR, "label_encoder.pkl")
-SCALER_FILE = os.path.join(MODELS_DIR, "scaler.pkl")
+# Model files - Using Latest Stable Version (v_20260306_234033)
+LATEST_STABLE_MODEL = os.path.join(MODELS_DIR, "v_20260306_234033")
+MODEL_FILE = os.path.join(LATEST_STABLE_MODEL, "boxing_model.pkl")
+ENCODER_FILE = os.path.join(LATEST_STABLE_MODEL, "label_encoder.pkl")
+SCALER_FILE = os.path.join(LATEST_STABLE_MODEL, "scaler.pkl")
 
 # ==================== CAMERA CONFIGURATION ====================
 CAMERA_INDEX = int(os.environ.get("CAMERA_INDEX", 0))
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
-TARGET_FPS = int(os.environ.get("TARGET_FPS", 30))
+TARGET_FPS = int(os.environ.get("TARGET_FPS", 60))
 
 # ==================== POSE DETECTION CONFIGURATION ====================
 # MediaPipe Pose settings
@@ -63,14 +64,14 @@ ANALYZER_HISTORY_SIZE = 3       # Minimal buffer
 ANALYZER_CONSISTENCY_THRESHOLD = 1 # Instant trigger (Raw output)
 
 # Temporal Smoothing (Prediction Buffer) [NEW]
-TEMPORAL_WINDOW_SIZE = 3 # Number of frames to keep in history for voting/averaging
+TEMPORAL_WINDOW_SIZE = 1 # Instant response mode
 
 # ==================== GAME CONTROL CONFIGURATION ====================
 # Confidence threshold for predictions (0.0 - 1.0)
 CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", 0.8))
 
 # Cooldown between actions (seconds)
-ACTION_COOLDOWN = 0.5 
+ACTION_COOLDOWN = 0.15 
 
 # Dynamic Key Bindings [NEW]
 # We now load this dynamically, but keep a fallback here
@@ -82,9 +83,9 @@ try:
 except Exception as e:
     print(f"Warning: Could not load profiles, using fallback bindings ({e})")
     KEY_BINDINGS = {
-        "left_punch": "left",
-        "right_punch": "right",
-        "defense": "f",
+        "left_punch": "click_left",
+        "right_punch": "click_right",
+        "block": "f",
         "dodge_left": "q",
         "dodge_right": "e",
         'dodge_front': ['w', 'space'],  # Press W + Space
@@ -143,7 +144,7 @@ def ensure_directories():
     """Create necessary directories if they don't exist"""
     os.makedirs(DATASET_DIR, exist_ok=True)
     os.makedirs(MODELS_DIR, exist_ok=True)
-    print(f"✓ Directories ready: {DATASET_DIR}, {MODELS_DIR}")
+    print(f"[OK] Directories ready: {DATASET_DIR}, {MODELS_DIR}")
 
 if __name__ == "__main__":
     # Print configuration summary

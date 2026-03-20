@@ -49,34 +49,9 @@ class MotionControllerApp(ctk.CTk):
         # Close Handler
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
-    def launch_overlay(self):
-        """Launch the transparent overlay process"""
-        try:
-            # Use sys.executable to ensure we use the same venv python
-            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.py")
-            
-            # Kill existing if running
-            if self.overlay_process and self.overlay_process.poll() is None:
-                self.overlay_process.terminate()
-                
-            self.overlay_process = subprocess.Popen([sys.executable, script_path])
-            app_logger.info("Overlay Launched")
-        except Exception as e:
-            app_logger.error(f"Failed to launch overlay: {e}")
 
     # ... (Omitted methods for brevity) ...
 
-    def on_close(self):
-        """Cleanup on close"""
-        if self.is_running:
-            self.controller.stop()
-            
-        # Kill Overlay
-        if self.overlay_process and self.overlay_process.poll() is None:
-            self.overlay_process.terminate()
-            app_logger.info("Overlay closed")
-            
-        self.destroy()
         
     def create_sidebar(self):
         """Create left sidebar with controls"""
@@ -85,7 +60,7 @@ class MotionControllerApp(ctk.CTk):
         self.sidebar.grid_rowconfigure(8, weight=1)
         
         # Title
-        self.logo_label = ctk.CTkLabel(self.sidebar, text="🥊 Controller", font=ctk.CTkFont(size=24, weight="bold"))
+        self.logo_label = ctk.CTkLabel(self.sidebar, text="AI Controller", font=ctk.CTkFont(size=24, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         
         # Start/Stop Button
@@ -228,10 +203,9 @@ class MotionControllerApp(ctk.CTk):
             # Convert Color: BGR (OpenCV) -> RGB (Pillow)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Resize logic (preserve aspect ratio)
-            # For simplicity, we can do fixed height or dynamic
-            h, w, c = frame_rgb.shape
-            img = Image.fromarray(frame_rgb)
+            # Explicitly resize using OpenCV to avoid Pillow/Tkinter memory stride distortion 
+            frame_resized = cv2.resize(frame_rgb, (640, 480))
+            img = Image.fromarray(frame_resized)
             
             # Create CTkImage
             ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(640, 480))

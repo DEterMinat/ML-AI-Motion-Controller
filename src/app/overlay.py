@@ -37,8 +37,7 @@ class OverlayApp(ctk.CTk):
         # Make Click-Through (Windows Only)
         self.after(500, self.make_click_through)
         
-        # Start WebSocket Client
-        self.start_client()
+        # Note: WebSocket client is started in run_app() via asyncio
         
     def setup_ui(self):
         """Build the HUD interface"""
@@ -73,21 +72,27 @@ class OverlayApp(ctk.CTk):
             # 255 = Opaque (for the non-transparent parts), 0 = key to transparent color
             # We rely on -transparentcolor attribute of tkinter mostly, 
             # but EX_TRANSPARENT allows click-through.
-            print("✓ Overlay Click-through Enabled")
+            # EX_TRANSPARENT allows click-through.
+            print("[OK] Overlay Click-through Enabled")
         except Exception as e:
-            print(f"⚠ Click-through Error: {e}")
+            print(f"[ERROR] Click-through Error: {e}")
 
     def update_hud(self, action, confidence):
-        """Update UI from Main Thread"""
-        # Determine Color
-        color = "#00FF00" # Green
-        if confidence < 0.5: color = "#FF0000" # Red
-        elif confidence < 0.8: color = "#FFFF00" # Yellow
+        """Update UI from Main Thread with safety checks"""
+        if not self.running: return
         
-        self.action_label.configure(text=str(action).upper(), text_color=color)
-        self.progress.configure(progress_color=color)
-        self.progress.set(confidence)
-        self.stats_label.configure(text=f"Conf: {confidence:.2f}")
+        try:
+            # Determine Color
+            color = "#00FF00" # Green
+            if confidence < 0.5: color = "#FF0000" # Red
+            elif confidence < 0.8: color = "#FFFF00" # Yellow
+            
+            self.action_label.configure(text=str(action).upper(), text_color=color)
+            self.progress.configure(progress_color=color)
+            self.progress.set(confidence)
+            self.stats_label.configure(text=f"Conf: {confidence:.2f}")
+        except:
+            pass # Widget likely destroyed during shutdown
 
     async def ws_client_loop(self):
         """WebSocket Client running asynchronously"""
@@ -95,11 +100,15 @@ class OverlayApp(ctk.CTk):
         while self.running:
             try:
                 # Update status
-                self.stats_label.configure(text_color="gray", text="Connecting...")
+                try:
+                    self.stats_label.configure(text_color="gray", text="Connecting...")
+                except: pass
                 
                 async with websockets.connect(uri) as websocket:
-                    print(f"✓ Overlay Connected to {uri}")
-                    self.stats_label.configure(text_color="white", text="Connected")
+                    print(f"[OK] Overlay Connected to {uri}")
+                    try:
+                        self.stats_label.configure(text_color="white", text="Connected")
+                    except: pass
                     
                     while self.running:
                         try:
@@ -109,7 +118,7 @@ class OverlayApp(ctk.CTk):
                             
                             # Check for Shutdown Signal
                             if data.get("event") == "shutdown":
-                                print("✓ Server Shutdown received")
+                                print("[OK] Server Shutdown received")
                                 self.running = False
                                 return
 
@@ -119,26 +128,35 @@ class OverlayApp(ctk.CTk):
                         except asyncio.TimeoutError:
                             continue # Just check self.running again
                         except websockets.exceptions.ConnectionClosed:
-                            print("⚠ Connection Closed")
+                            print("[ERROR] Connection Closed")
                             break
                         except Exception as e:
-                            print(f"⚠ Receive Error: {e}")
+                            print(f"[ERROR] Receive Error: {e}")
                             break
                             
             except (OSError, ConnectionRefusedError):
-                self.stats_label.configure(text_color="red", text="No Server")
+                try:
+                    self.stats_label.configure(text_color="red", text="No Server")
+                except: pass
                 await asyncio.sleep(2)
             except Exception as e:
-                print(f"⚠ Client Error: {e}")
+                print(f"[ERROR] Client Error: {e}")
                 await asyncio.sleep(2)
 
     async def tkinter_loop(self):
         """Async loop to update the CustomTkinter UI"""
         while self.running:
-            self.update() # Update UI
+            try:
+                self.update() # Update UI
+            except:
+                self.running = False
+                break
             await asyncio.sleep(0.02) # Yield control back to event loop (~50Hz update rate)
             
-        self.destroy() # Close window when running becomes False
+        try:
+            self.destroy() # Close window when running becomes False
+        except:
+            pass
 
     async def run_app(self):
         """Run both loops concurrently"""

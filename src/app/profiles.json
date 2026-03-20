@@ -1,14 +1,14 @@
 {
     "profiles": {
         "Boxing (Default)": {
-            "left_punch": "left",
-            "right_punch": "right",
-            "defense": "f",
-            "dodge_left": "q",
-            "dodge_right": "e",
+            "left_punch": "click_left",
+            "right_punch": "click_right",
+            "block": "f",
+            "dodge_left": "a space",
+            "dodge_right": "d space",
             "dodge_front": "w space",
             "dodge_back": "s space",
-            "final_skill": "x"
+            "final_skill": "q"
         },
         "Street Fighter": {
             "left_punch": "u",

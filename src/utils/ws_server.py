@@ -24,7 +24,7 @@ class WebSocketServer:
         self.running = True
         t = threading.Thread(target=self._run_server, name="WSServer", daemon=True)
         t.start()
-        print(f"✓ WebSocket Server started on ws://{self.host}:{self.port}")
+        print(f"[OK] WebSocket Server started on ws://{self.host}:{self.port}")
         
     def _run_server(self):
         """Internal method to run the asyncio loop"""
@@ -43,14 +43,14 @@ class WebSocketServer:
                     await shutdown_event.wait()
             except OSError as e:
                 if e.errno == 10048:
-                    print(f"⚠ Port {self.port} is busy. WebSocket server skipped.")
+                    print(f"[WAIT] Port {self.port} is busy. WebSocket server skipped.")
                 else:
-                    print(f"⚠ WebSocket Server Error: {e}")
+                    print(f"[ERROR] WebSocket Server Error: {e}")
         
         try:
             self.loop.run_until_complete(runner())
         except Exception as e:
-            print(f"⚠ WebSocket Loop Error: {e}")
+            print(f"[ERROR] WebSocket Loop Error: {e}")
         finally:
             self.loop.close()
             self.loop = None

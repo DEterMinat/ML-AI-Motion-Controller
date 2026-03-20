@@ -124,12 +124,12 @@ class GameControllerThreaded:
             return f"{confirmed_action} (No Key)"
             
         # Special handling for Continuous Actions (Block)
-        if confirmed_action == 'defense':
+        if confirmed_action == 'block':
             self.input_handler.handle_hold(key, True)
             return f"✓ BLOCKING (Hold)"
         else:
             # If doing anything else, ensure Block is released
-            block_key = config.KEY_BINDINGS.get('defense')
+            block_key = config.KEY_BINDINGS.get('block')
             if block_key:
                 self.input_handler.handle_hold(block_key, False)
         
@@ -147,7 +147,7 @@ class GameControllerThreaded:
             elif key == 'click_right': key_display = 'R-Click'
             elif isinstance(key, list): key_display = '+'.join(key).upper()
             
-            return f"✓ {confirmed_action.upper()} [{key_display}]"
+            return f"[OK] {confirmed_action.upper()} [{key_display}]"
         else:
             return f"{confirmed_action} (Cooldown)"
 

@@ -106,9 +106,11 @@ class InputHandler:
                 for k in reversed(key):
                     pydirectinput.keyUp(k)
             
-            # Handle Single Key
+            # Handle Single Key (With safety duration for games like Roblox)
             else:
-                pydirectinput.press(key)
+                pydirectinput.keyDown(key)
+                time.sleep(0.03)
+                pydirectinput.keyUp(key)
                 
             self.last_action_time[action_name] = time.time()
             return True

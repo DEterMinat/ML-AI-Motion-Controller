@@ -173,9 +173,9 @@ def main():
         min_tracking_confidence=config.POSE_MIN_TRACKING_CONFIDENCE
     )
     
-    # Open webcam
-    app_logger.info("Opening webcam...")
-    cap = cv2.VideoCapture(config.CAMERA_INDEX)
+    # Open webcam with Windows-specific backend if needed
+    backend = cv2.CAP_DSHOW if os.name == 'nt' else cv2.CAP_ANY
+    cap = cv2.VideoCapture(config.CAMERA_INDEX, backend)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, config.TARGET_FPS)
@@ -235,7 +235,7 @@ def main():
                     # Stop condition
                     if burst_count >= current_burst_target:
                         is_recording = False
-                        print(f"✅ Burst Complete! Collected {burst_count} samples for '{label}'.")
+                        print(f"[OK] Burst Complete! Collected {burst_count} samples for '{label}'.")
                         burst_count = 0 
                 else:
                     warning_msg = "POSE LOST"

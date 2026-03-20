@@ -47,14 +47,14 @@ def load_data():
             try:
                 df_raw = pd.read_csv(file_path)
                 if df_raw.isnull().values.any():
-                    print(f"  ⚠ Warning: Null values in {file}. Dropping...")
+                    print(f"  [WAIT] Warning: Null values in {file}. Dropping...")
                     df_raw = df_raw.dropna()
                 
                 df_pro = transform_dataset(df_raw)
                 dfs.append(df_pro)
-                print(f"  ✓ Loaded {file}: {len(df_pro)} samples")
+                print(f"  [OK] Loaded {file}: {len(df_pro)} samples")
             except Exception as e:
-                print(f"  ❌ Error loading {file}: {e}")
+                print(f"  [ERROR] Error loading {file}: {e}")
     
     if not dfs:
         raise FileNotFoundError("No data found!")
@@ -64,7 +64,7 @@ def load_data():
 def train(use_augmentation=True, use_grid_search=True):
     """Main training function with upgrades."""
     app_logger.info("============================================================")
-    app_logger.info("🤖 PROFESSIONAL AI TRAINING PIPELINE v2.0")
+    app_logger.info("PROFESSIONAL AI TRAINING PIPELINE v2.0")
     app_logger.info("============================================================")
     
     reports_dir = create_reports_dir()
@@ -73,7 +73,7 @@ def train(use_augmentation=True, use_grid_search=True):
     # 1. Load Data
     # =================================================================
     df = load_data()
-    print(f"  📊 Total Dataset: {len(df)} samples")
+    print(f"  [INFO] Total Dataset: {len(df)} samples")
     
     # =================================================================
     # 2. Data Augmentation (NEW)
@@ -82,7 +82,7 @@ def train(use_augmentation=True, use_grid_search=True):
         print("\n[STEP 2] Data Augmentation...")
         original_size = len(df)
         df = augment_dataset(df, augment_factor=2, noise_level=0.02)
-        print(f"  ✓ Augmented: {original_size} → {len(df)} samples (+{len(df)-original_size})")
+        print(f"  [OK] Augmented: {original_size} -> {len(df)} samples (+{len(df)-original_size})")
     
     # EDA: Class Distribution
     plt.figure(figsize=(10, 5))
@@ -91,7 +91,7 @@ def train(use_augmentation=True, use_grid_search=True):
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(os.path.join(reports_dir, "class_distribution.png"))
-    print(f"  ✓ EDA Plot saved")
+    print(f"  [OK] EDA Plot saved")
 
     # =================================================================
     # 3. Data Splitting
@@ -113,9 +113,9 @@ def train(use_augmentation=True, use_grid_search=True):
         X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp
     )
     
-    print(f"  🔸 Training Set:   {len(X_train)} samples (70%)")
-    print(f"  🔸 Validation Set: {len(X_val)} samples (15%)")
-    print(f"  🔸 Test Set:       {len(X_test)} samples (15%)")
+    print(f"  [SET] Training Set:   {len(X_train)} samples (70%)")
+    print(f"  [SET] Validation Set: {len(X_val)} samples (15%)")
+    print(f"  [SET] Test Set:       {len(X_test)} samples (15%)")
 
     # =================================================================
     # 4. Model Training with GridSearchCV (NEW)
@@ -171,12 +171,12 @@ def train(use_augmentation=True, use_grid_search=True):
     # Validation Accuracy
     y_val_pred = best_model.predict(X_val)
     val_acc = accuracy_score(y_val, y_val_pred)
-    print(f"  📊 Validation Accuracy: {val_acc*100:.2f}%")
+    print(f"  [INFO] Validation Accuracy: {val_acc*100:.2f}%")
     
     # Test Accuracy
     y_pred = best_model.predict(X_test)
     test_acc = accuracy_score(y_test, y_pred)
-    print(f"  🏆 Test Accuracy: {test_acc*100:.2f}%")
+    print(f"  [INFO] Test Accuracy: {test_acc*100:.2f}%")
     print("\nClassification Report:\n", classification_report(y_test, y_pred, target_names=encoder.classes_))
     app_logger.info(f"Test Accuracy: {test_acc*100:.2f}%")
     
@@ -192,7 +192,7 @@ def train(use_augmentation=True, use_grid_search=True):
     plt.xlabel('Predicted Label')
     plt.tight_layout()
     plt.savefig(os.path.join(reports_dir, "confusion_matrix.png"))
-    print(f"  ✓ Confusion Matrix saved")
+    print(f"  [OK] Confusion Matrix saved")
 
     # =================================================================
     # 6. Save Model & Metadata Versioning
@@ -229,7 +229,7 @@ def train(use_augmentation=True, use_grid_search=True):
     app_logger.info(f"Model saved to: {version_dir} and updated 'latest' in models/")
     
     app_logger.info("============================================================")
-    app_logger.info(f"🎉 TRAINING COMPLETE! Test Accuracy: {test_acc*100:.2f}%")
+    app_logger.info(f"TRAINING COMPLETE! Test Accuracy: {test_acc*100:.2f}%")
     app_logger.info("============================================================")
     
     return best_model, encoder, scaler, test_acc

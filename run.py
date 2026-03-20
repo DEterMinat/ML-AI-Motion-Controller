@@ -31,7 +31,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         traceback.print_tb(exc_traceback, file=f)
         f.write("\n" + "-"*50 + "\n")
         
-    print("❌ An error occurred! Logs saved to crash_log.txt")
+    print("An error occurred! Logs saved to crash_log.txt")
 
 sys.excepthook = handle_exception
 
@@ -43,6 +43,6 @@ except ImportError:
     from src.app.main import MotionControllerApp
 
 if __name__ == "__main__": 
-    print("🚀 Starting ML-AI Motion Controller...")
+    print("Starting ML-AI Motion Controller...")
     app = MotionControllerApp()
     app.mainloop()

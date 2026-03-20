@@ -37,7 +37,7 @@ class ProfileManager:
                 "Boxing (Default)": {
                     "left_punch": "left",
                     "right_punch": "right",
-                    "defense": "f",
+                    "block": "f",
                     "dodge_left": "q",
                     "dodge_right": "e",
                     "dodge_front": "w space",
@@ -105,7 +105,7 @@ class SettingsUI(ctk.CTkToplevel):
         
         self.binding_entries = {}
         # Actions we expect from the model
-        actions = ["left_punch", "right_punch", "defense", "dodge_left", "dodge_right", "dodge_front", "dodge_back", "final_skill"]
+        actions = ["left_punch", "right_punch", "block", "dodge_left", "dodge_right", "dodge_front", "dodge_back", "final_skill"]
         
         for i, action in enumerate(actions):
             row = ctk.CTkFrame(self.bindings_frame, fg_color="transparent")
